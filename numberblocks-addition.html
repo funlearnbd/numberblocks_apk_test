@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Numberblocks Addition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Comic Sans MS', sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .home-btn {
+            background: #f0f0f0;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .title {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .lang-select {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            font-size: 14px;
+            font-weight: bold;
+            background: white;
+        }
+
+        /* Game Mode Selector */
+        .mode-selector {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(255,255,255,0.9);
+            justify-content: center;
+        }
+
+        .mode-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.sandbox { background: #4CAF50; color: white; }
+        .mode-btn.quiz { background: #2196F3; color: white; }
+        .mode-btn.active { transform: scale(1.1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+        /* Number Palette */
+        .palette {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            padding: 10px;
+            background: white;
+            border-bottom: 2px solid #eee;
+        }
+
+        .palette-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: #f8f8f8;
+            border-radius: 12px;
+            cursor: grab;
+            transition: transform 0.2s;
+        }
+
+        .palette-item:active {
+            transform: scale(0.95);
+            cursor: grabbing;
+        }
+
+        .palette-preview {
+            transform: scale(0.4);
+            transform-origin: center;
+            pointer-events: none;
+        }
+
+        .palette-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            margin-top: -10px;
+        }
+
+        /* Canvas */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-image: radial-gradient(#d0d0d0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .canvas-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ccc;
+            font-size: 20px;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        /* Trash Zone */
+        #trash-zone {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            border: 3px dashed #ff4d4d;
+            border-radius: 15px;
+            background: rgba(255,77,77,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 25px;
+            opacity: 0.6;
+            transition: all 0.2s;
+            z-index: 50;
+        }
+
+        #trash-zone.hover {
+            opacity: 1;
+            transform: translateX(-50%) scale(1.2);
+            background: rgba(255,77,77,0.3);
+        }
+
+        /* Blocks */
+        .block-container {
+            position: absolute;
+            display: grid;
+            gap: 2px;
+            cursor: grab;
+            z-index: 10;
+            touch-action: none;
+        }
+
+        .block-container.dragging {
+            z-index: 1000;
+            cursor: grabbing;
+        }
+
+        .block-container.merge-target {
+            filter: drop-shadow(0 0 15px gold);
+            transform: scale(1.05);
+        }
+
+        .block-container.square-shake {
+            animation: squareShake 0.8s ease;
+        }
+
+        @keyframes squareShake {
+            0%, 100% { transform: rotate(0) scale(1); }
+            20% { transform: rotate(-10deg) scale(1.2); }
+            40% { transform: rotate(10deg) scale(1.2); }
+            60% { transform: rotate(-5deg) scale(1.1); }
+            80% { transform: rotate(5deg) scale(1.05); }
+        }
+
+        .unit {
+            width: 35px;
+            height: 35px;
+            border-radius: 6px;
+            position: relative;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.15), 2px 2px 0 rgba(0,0,0,0.1);
+        }
+
+        /* Colors 1-20 */
+        .c1 { background: #ff4d4d; border: 2px solid #cc0000; }
+        .c2 { background: #ffaf40; border: 2px solid #e67e22; }
+        .c3 { background: #fffa65; border: 2px solid #f1c40f; }
+        .c4 { background: #32ff7e; border: 2px solid #2ecc71; }
+        .c5 { background: #18dcff; border: 2px solid #3498db; }
+        .c6 { background: #a29bfe; border: 2px solid #6c5ce7; }
+        .c7 { background: #fab1a0; border: 2px solid #e17055; }
+        .c8 { background: #ff00ff; border: 2px solid #c71585; }
+        .c9 { background: #b2bec3; border: 2px solid #636e72; }
+        .c10 { background: white; border: 2px solid #ff4d4d; }
+        .c11 { background: #800000; border: 2px solid #4d0000; }
+        .c12 { background: #ff69b4; border: 2px solid #db2777; }
+        .c13 { background: #1abc9c; border: 2px solid #16a085; }
+        .c14 { background: #8B4513; border: 2px solid #5D2E0C; }
+        .c15 { background: #4169e1; border: 2px solid #2a4db0; }
+        .c16 { background: #FFD700; border: 2px solid #ccac00; }
+        .c17 { background: #228B22; border: 2px solid #145214; }
+        .c18 { background: #4B0082; border: 2px solid #2e004f; }
+        .c19 { background: #001f3f; border: 2px solid #000a14; }
+        .c20 { background: #FF7F50; border: 2px solid #e55a2b; }
+
+        /* Face */
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .eye {
+            position: absolute;
+            top: 20%;
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            border: 1.5px solid #000;
+        }
+        .eye.left { left: 5px; }
+        .eye.right { right: 5px; }
+        .eye::after {
+            content: '';
+            position: absolute;
+            right: 1px;
+            top: 1px;
+            width: 2px;
+            height: 2px;
+            background: #000;
+            border-radius: 50%;
+        }
+
+        .mouth {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 4px;
+            border-bottom: 2px solid #000;
+            border-radius: 0 0 6px 6px;
+        }
+
+        .block-value {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* Quiz Mode */
+        .quiz-panel {
+            display: none;
+            background: white;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #eee;
+        }
+
+        .quiz-panel.active {
+            display: block;
+        }
+
+        .quiz-question {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .quiz-equation {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .quiz-answers {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quiz-answer-btn {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(180deg, #4CAF50, #388E3C);
+            box-shadow: 0 4px 0 #2E7D32;
+            cursor: pointer;
+        }
+
+        .quiz-answer-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #2E7D32;
+        }
+
+        .quiz-answer-btn.correct {
+            background: linear-gradient(180deg, #8BC34A, #689F38);
+            animation: correctPop 0.5s ease;
+        }
+
+        .quiz-answer-btn.wrong {
+            background: linear-gradient(180deg, #f44336, #d32f2f);
+            animation: wrongShake 0.5s ease;
+        }
+
+        @keyframes correctPop {
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes wrongShake {
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .quiz-score {
+            font-size: 16px;
+            color: #666;
+        }
+
+        /* Clear Button */
+        .clear-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 60;
+        }
+
+        /* Spawn Animation */
+        @keyframes spawnPop {
+            0% { transform: scale(0); }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .spawn-anim {
+            animation: spawnPop 0.3s ease;
+        }
+
+        /* RTL Support for Arabic */
+        [dir="rtl"] .header {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .header-left {
+            flex-direction: row-reverse;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header class="header">
+        <div class="header-left">
+            <button class="home-btn" onclick="goHome()">🏠</button>
+            <span class="title" id="page-title">Addition Lab</span>
+        </div>
+        <select class="lang-select" id="lang-select" onchange="changeLanguage()">
+            <option value="en">English</option>
+            <option value="bn">বাংলা</option>
+            <option value="ar">العربية</option>
+        </select>
+    </header>
+
+    <div class="mode-selector">
+        <button class="mode-btn sandbox active" onclick="setMode('sandbox')" id="btn-sandbox">🎨 Sandbox</button>
+        <button class="mode-btn quiz" onclick="setMode('quiz')" id="btn-quiz">🧮 Quiz</button>
+    </div>
+
+    <!-- Quiz Panel -->
+    <div class="quiz-panel" id="quiz-panel">
+        <div class="quiz-score" id="quiz-score">⭐ 0 / 10</div>
+        <div class="quiz-equation" id="quiz-equation">2 + 3 = ?</div>
+        <div class="quiz-answers" id="quiz-answers"></div>
+    </div>
+
+    <!-- Number Palette -->
+    <div class="palette" id="palette"></div>
+
+    <!-- Canvas -->
+    <div class="canvas-container">
+        <div id="canvas">
+            <div class="canvas-hint" id="canvas-hint">Drag numbers here!</div>
+            <div id="trash-zone">🗑️</div>
+        </div>
+        <button class="clear-btn" onclick="clearCanvas()" id="clear-btn">🗑️ Clear</button>
+    </div>
+</div>
+
+<script>
+// Language Data
+const LANG = {
+    en: {
+        title: "Addition Lab",
+        sandbox: "🎨 Sandbox",
+        quiz: "🧮 Quiz",
+        hint: "Drag numbers here!",
+        clear: "🗑️ Clear",
+        plus: "plus",
+        equals: "equals",
+        square: "Wow! {n} is a square number!",
+        correct: "Correct!",
+        wrong: "Try again!",
+        numbers: ["zero","one","two","three","four","five","six","seven","eight","nine","ten",
+                  "eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty"]
+    },
+    bn: {
+        title: "যোগ ল্যাব",
+        sandbox: "🎨 খেলা",
+        quiz: "🧮 কুইজ",
+        hint: "এখানে টেনে আনো!",
+        clear: "🗑️ মুছুন",
+        plus: "যোগ",
+        equals: "সমান",
+        square: "বাহ! {n} একটি বর্গ সংখ্যা!",
+        correct: "সঠিক!",
+        wrong: "আবার চেষ্টা করো!",
+        numbers: ["শূন্য","এক","দুই","তিন","চার","পাঁচ","ছয়","সাত","আট","নয়","দশ",
+                  "এগারো","বারো","তেরো","চৌদ্দ","পনেরো","ষোল","সতেরো","আঠারো","উনিশ","বিশ"]
+    },
+    ar: {
+        title: "معمل الجمع",
+        sandbox: "🎨 حر",
+        quiz: "🧮 اختبار",
+        hint: "اسحب الأرقام هنا!",
+        clear: "🗑️ مسح",
+        plus: "زائد",
+        equals: "يساوي",
+        square: "رائع! {n} هو عدد مربع!",
+        correct: "صحيح!",
+        wrong: "حاول مرة أخرى!",
+        numbers: ["صفر","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة","عشرة",
+                  "أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر","ستة عشر","سبعة عشر","ثمانية عشر","تسعة عشر","عشرون"]
+    }
+};
+
+const SQUARE_NUMBERS = [1, 4, 9, 16];
+
+let currentLang = 'en';
+let currentMode = 'sandbox';
+let blockIdCounter = 0;
+let activeBlock = null;
+let startX = 0, startY = 0;
+let mergeCandidate = null;
+let isInputLocked = false;
+
+// Quiz state
+let quizScore = 0;
+let quizRound = 0;
+let quizAnswer = 0;
+
+const canvas = document.getElementById('canvas');
+const trashZone = document.getElementById('trash-zone');
+const palette = document.getElementById('palette');
+const quizPanel = document.getElementById('quiz-panel');
+
+// Initialize
+function init() {
+    buildPalette();
+    updateUI();
+}
+
+function getLocalizedNumber(n) {
+    if (n <= 20) return LANG[currentLang].numbers[n];
+    return n.toString();
+}
+
+function updateUI() {
+    const L = LANG[currentLang];
+    document.getElementById('page-title').textContent = L.title;
+    document.getElementById('btn-sandbox').textContent = L.sandbox;
+    document.getElementById('btn-quiz').textContent = L.quiz;
+    document.getElementById('canvas-hint').textContent = L.hint;
+    document.getElementById('clear-btn').textContent = L.clear;
+    
+    // RTL for Arabic
+    document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+}
+
+function changeLanguage() {
+    currentLang = document.getElementById('lang-select').value;
+    updateUI();
+    buildPalette();
+}
+
+function setMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.mode-btn.${mode}`).classList.add('active');
+    
+    if (mode === 'quiz') {
+        quizPanel.classList.add('active');
+        palette.style.display = 'none';
+        quizScore = 0;
+        quizRound = 0;
+        nextQuizQuestion();
+    } else {
+        quizPanel.classList.remove('active');
+        palette.style.display = 'grid';
+    }
+}
+
+// Build palette
+function buildPalette() {
+    palette.innerHTML = '';
+    for (let i = 1; i <= 10; i++) {
+        const item = document.createElement('div');
+        item.className = 'palette-item';
+        item.innerHTML = `
+            <div class="palette-preview">${createBlockHTML(i, false)}</div>
+            <span class="palette-label">${getLocalizedNumber(i)}</span>
+        `;
+        item.addEventListener('touchstart', (e) => spawnBlock(e, i), {passive: false});
+        item.addEventListener('mousedown', (e) => spawnBlock(e, i));
+        palette.appendChild(item);
+    }
+}
+
+// Get block layout
+function getLayout(n) {
+    if (n === 1) return { cols: 1, pattern: [[0,0]] };
+    if (n === 2) return { cols: 2, pattern: [[0,0],[0,1]] };
+    if (n === 3) return { cols: 2, pattern: [[0,0],[1,0],[1,1]] };
+    if (n === 4) return { cols: 2, pattern: [[0,0],[0,1],[1,0],[1,1]] };
+    if (n === 5) return { cols: 2, pattern: [[0,0],[1,0],[1,1],[2,0],[2,1]] };
+    if (n === 6) return { cols: 2, pattern: [[0,0],[0,1],[1,0],[1,1],[2,0],[2,1]] };
+    if (n === 7) return { cols: 2, pattern: [[0,0],[1,0],[1,1],[2,0],[2,1],[3,0],[3,1]] };
+    if (n === 8) return { cols: 2, pattern: [[0,0],[0,1],[1,0],[1,1],[2,0],[2,1],[3,0],[3,1]] };
+    if (n === 9) return { cols: 3, pattern: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]] };
+    if (n === 10) return { cols: 2, pattern: [[0,0],[0,1],[1,0],[1,1],[2,0],[2,1],[3,0],[3,1],[4,0],[4,1]] };
+    
+    // 11-20
+    const cols = n <= 15 ? 3 : 4;
+    const pattern = [];
+    for (let i = 0; i < n; i++) {
+        pattern.push([Math.floor(i/cols), i % cols]);
+    }
+    return { cols, pattern };
+}
+
+function createBlockHTML(n, showLabel = true) {
+    const layout = getLayout(n);
+    const colorNum = Math.min(n, 20);
+    
+    let html = `<div class="block-container" style="grid-template-columns: repeat(${layout.cols}, 1fr);">`;
+    
+    layout.pattern.forEach((pos, idx) => {
+        const hasFace = idx === 0;
+        html += `<div class="unit c${colorNum}" style="grid-row:${pos[0]+1};grid-column:${pos[1]+1};">`;
+        if (hasFace) {
+            html += `<div class="face">
+                <div class="eye left"></div>
+                <div class="eye right"></div>
+                <div class="mouth"></div>
+            </div>`;
+        }
+        html += `</div>`;
+    });
+    
+    if (showLabel) {
+        html += `<div class="block-value">${getLocalizedNumber(n)}</div>`;
+    }
+    
+    html += `</div>`;
+    return html;
+}
+
+function createBlockElement(n) {
+    const div = document.createElement('div');
+    div.innerHTML = createBlockHTML(n, true);
+    const block = div.firstElementChild;
+    block.dataset.value = n;
+    block.id = `block-${blockIdCounter++}`;
+    return block;
+}
+
+// Spawn block from palette
+function spawnBlock(e, num) {
+    if (isInputLocked || currentMode === 'quiz') return;
+    e.preventDefault();
+    
+    document.getElementById('canvas-hint').style.display = 'none';
+    
+    const block = createBlockElement(num);
+    block.classList.add('spawn-anim');
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    canvas.appendChild(block);
+    
+    const rect = block.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    block.style.left = (clientX - canvasRect.left - rect.width/2) + 'px';
+    block.style.top = (clientY - canvasRect.top - rect.height/2) + 'px';
+    
+    startDrag(e, block);
+}
+
+// Drag handling
+canvas.addEventListener('mousedown', (e) => {
+    const block = e.target.closest('.block-container');
+    if (block && currentMode === 'sandbox') startDrag(e, block);
+});
+
+canvas.addEventListener('touchstart', (e) => {
+    const block = e.target.closest('.block-container');
+    if (block && currentMode === 'sandbox') {
+        e.preventDefault();
+        startDrag(e, block);
+    }
+}, {passive: false});
+
+function startDrag(e, block) {
+    if (isInputLocked) return;
+    activeBlock = block;
+    activeBlock.classList.add('dragging');
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = activeBlock.getBoundingClientRect();
+    startX = clientX - rect.left;
+    startY = clientY - rect.top;
+    
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, {passive: false});
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchend', onEnd);
+}
+
+function onMove(e) {
+    if (!activeBlock) return;
+    e.preventDefault();
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const canvasRect = canvas.getBoundingClientRect();
+    
+    activeBlock.style.left = (clientX - canvasRect.left - startX) + 'px';
+    activeBlock.style.top = (clientY - canvasRect.top - startY) + 'px';
+    
+    // Check trash
+    const trashRect = trashZone.getBoundingClientRect();
+    const blockRect = activeBlock.getBoundingClientRect();
+    if (isOverlap(blockRect, trashRect)) {
+        trashZone.classList.add('hover');
+    } else {
+        trashZone.classList.remove('hover');
+    }
+    
+    checkMergePreview();
+}
+
+function isOverlap(r1, r2) {
+    return !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
+}
+
+function checkMergePreview() {
+    if (!activeBlock) return;
+    const myRect = activeBlock.getBoundingClientRect();
+    const others = Array.from(canvas.querySelectorAll('.block-container'));
+    
+    mergeCandidate = null;
+    
+    others.forEach(other => {
+        if (other === activeBlock) return;
+        other.classList.remove('merge-target');
+        
+        const otherRect = other.getBoundingClientRect();
+        const c1 = { x: myRect.left + myRect.width/2, y: myRect.top + myRect.height/2 };
+        const c2 = { x: otherRect.left + otherRect.width/2, y: otherRect.top + otherRect.height/2 };
+        const dist = Math.hypot(c1.x - c2.x, c1.y - c2.y);
+        
+        if (dist < 50) {
+            mergeCandidate = other;
+            other.classList.add('merge-target');
+        }
+    });
+}
+
+function onEnd(e) {
+    if (!activeBlock) return;
+    
+    activeBlock.classList.remove('dragging');
+    
+    // Check trash
+    const trashRect = trashZone.getBoundingClientRect();
+    const blockRect = activeBlock.getBoundingClientRect();
+    if (isOverlap(blockRect, trashRect)) {
+        playSound('delete');
+        activeBlock.remove();
+        trashZone.classList.remove('hover');
+        resetDrag();
+        return;
+    }
+    
+    // Check merge
+    if (mergeCandidate) {
+        performMerge(activeBlock, mergeCandidate);
+    }
+    
+    resetDrag();
+}
+
+function resetDrag() {
+    activeBlock = null;
+    mergeCandidate = null;
+    document.querySelectorAll('.block-container').forEach(b => b.classList.remove('merge-target'));
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('mouseup', onEnd);
+    document.removeEventListener('touchend', onEnd);
+}
+
+function performMerge(b1, b2) {
+    const v1 = parseInt(b1.dataset.value);
+    const v2 = parseInt(b2.dataset.value);
+    const sum = v1 + v2;
+    
+    if (sum > 100) return;
+    
+    const rect = b2.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    
+    b1.remove();
+    b2.remove();
+    
+    const newBlock = createBlockElement(sum);
+    newBlock.classList.add('spawn-anim');
+    newBlock.style.left = (rect.left - canvasRect.left) + 'px';
+    newBlock.style.top = (rect.top - canvasRect.top) + 'px';
+    canvas.appendChild(newBlock);
+    
+    speakMath(v1, v2, sum, newBlock);
+}
+
+function speakMath(a, b, sum, block) {
+    if (!('speechSynthesis' in window)) return;
+    isInputLocked = true;
+    
+    const L = LANG[currentLang];
+    const sequence = [
+        getLocalizedNumber(a),
+        L.plus,
+        getLocalizedNumber(b),
+        L.equals,
+        getLocalizedNumber(sum)
+    ];
+    
+    const isSquare = SQUARE_NUMBERS.includes(sum);
+    if (isSquare) {
+        sequence.push(L.square.replace("{n}", getLocalizedNumber(sum)));
+    }
+    
+    let i = 0;
+    function speakNext() {
+        if (i >= sequence.length) {
+            isInputLocked = false;
+            if (isSquare && block) block.classList.add('square-shake');
+            return;
+        }
+        
+        const msg = new SpeechSynthesisUtterance(sequence[i]);
+        if (currentLang === 'ar') msg.lang = 'ar-SA';
+        else if (currentLang === 'bn') msg.lang = 'bn-BD';
+        else msg.lang = 'en-US';
+        msg.pitch = 1.2;
+        
+        msg.onend = () => setTimeout(speakNext, 150);
+        speechSynthesis.speak(msg);
+        i++;
+    }
+    
+    speechSynthesis.cancel();
+    speakNext();
+}
+
+function clearCanvas() {
+    if (isInputLocked) return;
+    canvas.querySelectorAll('.block-container').forEach(b => b.remove());
+    document.getElementById('canvas-hint').style.display = 'block';
+}
+
+// Quiz Mode
+function nextQuizQuestion() {
+    quizRound++;
+    if (quizRound > 10) {
+        showQuizResults();
+        return;
+    }
+    
+    const a = Math.floor(Math.random() * 9) + 1;
+    const b = Math.floor(Math.random() * 9) + 1;
+    quizAnswer = a + b;
+    
+    document.getElementById('quiz-score').textContent = `⭐ ${quizScore} / 10`;
+    document.getElementById('quiz-equation').textContent = `${a} + ${b} = ?`;
+    
+    const options = generateOptions(quizAnswer);
+    const answersDiv = document.getElementById('quiz-answers');
+    answersDiv.innerHTML = '';
+    
+    options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-answer-btn';
+        btn.textContent = opt;
+        btn.onclick = () => checkQuizAnswer(opt, btn);
+        answersDiv.appendChild(btn);
+    });
+    
+    speak(`${getLocalizedNumber(a)} ${LANG[currentLang].plus} ${getLocalizedNumber(b)}`);
+}
+
+function generateOptions(correct) {
+    const opts = [correct];
+    while (opts.length < 4) {
+        const wrong = correct + Math.floor(Math.random() * 5) - 2;
+        if (wrong > 0 && wrong !== correct && !opts.includes(wrong)) {
+            opts.push(wrong);
+        }
+    }
+    return opts.sort(() => Math.random() - 0.5);
+}
+
+function checkQuizAnswer(selected, btn) {
+    const buttons = document.querySelectorAll('.quiz-answer-btn');
+    buttons.forEach(b => b.disabled = true);
+    
+    if (selected === quizAnswer) {
+        btn.classList.add('correct');
+        quizScore++;
+        playSound('correct');
+        speak(LANG[currentLang].correct + ' ' + getLocalizedNumber(quizAnswer));
+    } else {
+        btn.classList.add('wrong');
+        buttons.forEach(b => {
+            if (parseInt(b.textContent) === quizAnswer) b.classList.add('correct');
+        });
+        playSound('wrong');
+        speak(LANG[currentLang].wrong);
+    }
+    
+    document.getElementById('quiz-score').textContent = `⭐ ${quizScore} / 10`;
+    
+    setTimeout(nextQuizQuestion, 1500);
+}
+
+function showQuizResults() {
+    const L = LANG[currentLang];
+    document.getElementById('quiz-equation').textContent = `🎉 ${quizScore}/10 🎉`;
+    document.getElementById('quiz-answers').innerHTML = `<button class="quiz-answer-btn" onclick="setMode('quiz')" style="width:auto;border-radius:20px;padding:10px 30px;">🔄</button>`;
+}
+
+function speak(text) {
+    if (!('speechSynthesis' in window)) return;
+    const msg = new SpeechSynthesisUtterance(text);
+    if (currentLang === 'ar') msg.lang = 'ar-SA';
+    else if (currentLang === 'bn') msg.lang = 'bn-BD';
+    else msg.lang = 'en-US';
+    msg.pitch = 1.2;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(msg);
+}
+
+// Audio
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function playSound(type) {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    const now = audioCtx.currentTime;
+    
+    if (type === 'correct') {
+        [523, 659, 784].forEach((f, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(f, now + i*0.1);
+            gain.gain.setValueAtTime(0.2, now + i*0.1);
+            gain.gain.setValueAtTime(0.01, now + i*0.1 + 0.15);
+            osc.start(now + i*0.1);
+            osc.stop(now + i*0.1 + 0.2);
+        });
+    } else if (type === 'wrong') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } else if (type === 'delete') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.setValueAtTime(100, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
+    }
+}
+
+function goHome() {
+    window.location.href = 'index.html';
+}
+
+init();
+</script>
+</body>
+</html>

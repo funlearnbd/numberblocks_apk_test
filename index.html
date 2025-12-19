@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#667eea">
+    <link rel="manifest" href="manifest.json">
+    <title>Numberblocks Games</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Comic Sans MS', sans-serif;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .logo {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        .logo-block {
+            display: grid;
+            gap: 2px;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        .logo-block:nth-child(2) { animation-delay: 0.1s; }
+        .logo-block:nth-child(3) { animation-delay: 0.2s; }
+        .logo-block:nth-child(4) { animation-delay: 0.3s; }
+        .logo-block:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .logo-unit {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        .c1 { background: #ff4d4d; border: 2px solid #cc0000; }
+        .c2 { background: #ffaf40; border: 2px solid #e67e22; }
+        .c3 { background: #fffa65; border: 2px solid #f1c40f; }
+        .c4 { background: #32ff7e; border: 2px solid #2ecc71; }
+        .c5 { background: #18dcff; border: 2px solid #3498db; }
+
+        .title {
+            font-size: 28px;
+            color: white;
+            text-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+        }
+
+        /* Language Selector */
+        .lang-selector {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .lang-btn {
+            padding: 8px 15px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+
+        /* Games Grid */
+        .games-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .game-card:active {
+            transform: scale(0.98);
+        }
+
+        .card-icon {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            flex-shrink: 0;
+        }
+
+        .card-icon.green { background: linear-gradient(135deg, #4CAF50, #8BC34A); }
+        .card-icon.purple { background: linear-gradient(135deg, #9C27B0, #E91E63); }
+        .card-icon.blue { background: linear-gradient(135deg, #2196F3, #03A9F4); }
+        .card-icon.orange { background: linear-gradient(135deg, #FF9800, #FFC107); }
+        .card-icon.red { background: linear-gradient(135deg, #f44336, #FF5722); }
+
+        .card-content {
+            padding: 12px 15px;
+            flex: 1;
+        }
+
+        .card-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .card-desc {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.3;
+        }
+
+        .card-badge {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+
+        .card-badge.new { background: #f44336; }
+        .card-badge.fun { background: #FF9800; }
+
+        .card-arrow {
+            padding: 15px;
+            font-size: 20px;
+            color: #ccc;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+        }
+
+        /* RTL Support */
+        [dir="rtl"] .game-card {
+            flex-direction: row-reverse;
+        }
+
+        [dir="rtl"] .card-badge {
+            margin-left: 0;
+            margin-right: 5px;
+        }
+
+        [dir="rtl"] .card-arrow {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <div class="logo">
+            <div class="logo-block" style="grid-template-columns:1fr;">
+                <div class="logo-unit c1"></div>
+            </div>
+            <div class="logo-block" style="grid-template-columns:repeat(2,1fr);">
+                <div class="logo-unit c2"></div>
+                <div class="logo-unit c2"></div>
+            </div>
+            <div class="logo-block" style="grid-template-columns:repeat(2,1fr);">
+                <div class="logo-unit c3"></div>
+                <div class="logo-unit c3"></div>
+                <div class="logo-unit c3"></div>
+            </div>
+            <div class="logo-block" style="grid-template-columns:repeat(2,1fr);">
+                <div class="logo-unit c4"></div>
+                <div class="logo-unit c4"></div>
+                <div class="logo-unit c4"></div>
+                <div class="logo-unit c4"></div>
+            </div>
+            <div class="logo-block" style="grid-template-columns:repeat(2,1fr);">
+                <div class="logo-unit c5"></div>
+                <div class="logo-unit c5" style="visibility:hidden;"></div>
+                <div class="logo-unit c5"></div>
+                <div class="logo-unit c5"></div>
+                <div class="logo-unit c5"></div>
+                <div class="logo-unit c5"></div>
+            </div>
+        </div>
+        <h1 class="title" id="app-title">Numberblocks Games</h1>
+        <p class="subtitle" id="app-subtitle">Learn numbers while having fun!</p>
+    </header>
+
+    <div class="lang-selector">
+        <button class="lang-btn active" onclick="setLang('en')">English</button>
+        <button class="lang-btn" onclick="setLang('bn')">বাংলা</button>
+        <button class="lang-btn" onclick="setLang('ar')">العربية</button>
+    </div>
+
+    <div class="games-grid" id="games-grid">
+        <!-- Games will be rendered here -->
+    </div>
+
+    <footer class="footer">
+        <p id="footer-text">Made with ❤️ for little learners</p>
+    </footer>
+</div>
+
+<script>
+const LANG = {
+    en: {
+        title: "Numberblocks Games",
+        subtitle: "Learn numbers while having fun!",
+        footer: "Made with ❤️ for little learners",
+        games: [
+            { icon: "➕", color: "green", title: "Addition Lab", desc: "Drag & merge blocks to learn addition!", badge: "LEARN", file: "numberblocks-addition.html" },
+            { icon: "➖", color: "purple", title: "Subtraction Adventure", desc: "4 modes: Visual, Quiz, Monster, Stories", badge: "", file: "numberblocks-subtraction.html" },
+            { icon: "🎈", color: "blue", title: "Balloon Pop Party", desc: "Pop balloons with voice guidance!", badge: "NEW", file: "numberblocks-subtractionV2.html" },
+            { icon: "🏃", color: "orange", title: "Numberblocks Runner", desc: "Run, jump & collect coins!", badge: "FUN", file: "numberblocks-runner.html" },
+            { icon: "🔢", color: "red", title: "Meet the Numberblocks", desc: "See all blocks from 1 to 20!", badge: "", file: "numberblocks-preview.html" }
+        ]
+    },
+    bn: {
+        title: "নাম্বারব্লকস গেমস",
+        subtitle: "মজা করে সংখ্যা শিখো!",
+        footer: "ছোট শিক্ষার্থীদের জন্য ❤️ দিয়ে তৈরি",
+        games: [
+            { icon: "➕", color: "green", title: "যোগ ল্যাব", desc: "ব্লক টেনে যোগ করো!", badge: "শিখুন", file: "numberblocks-addition.html" },
+            { icon: "➖", color: "purple", title: "বিয়োগ অ্যাডভেঞ্চার", desc: "৪টি মোড: ভিজ্যুয়াল, কুইজ, দানব, গল্প", badge: "", file: "numberblocks-subtraction.html" },
+            { icon: "🎈", color: "blue", title: "বেলুন পপ পার্টি", desc: "কণ্ঠস্বর দিয়ে বেলুন ফাটাও!", badge: "নতুন", file: "numberblocks-subtractionV2.html" },
+            { icon: "🏃", color: "orange", title: "নাম্বারব্লকস রানার", desc: "দৌড়াও, লাফাও ও কয়েন সংগ্রহ করো!", badge: "মজা", file: "numberblocks-runner.html" },
+            { icon: "🔢", color: "red", title: "নাম্বারব্লকসদের সাথে দেখা করো", desc: "১ থেকে ২০ পর্যন্ত সব ব্লক দেখো!", badge: "", file: "numberblocks-preview.html" }
+        ]
+    },
+    ar: {
+        title: "ألعاب نمبربلوكس",
+        subtitle: "تعلم الأرقام بطريقة ممتعة!",
+        footer: "صنع بـ ❤️ للمتعلمين الصغار",
+        games: [
+            { icon: "➕", color: "green", title: "معمل الجمع", desc: "اسحب ودمج المكعبات لتعلم الجمع!", badge: "تعلم", file: "numberblocks-addition.html" },
+            { icon: "➖", color: "purple", title: "مغامرة الطرح", desc: "4 أوضاع: بصري، اختبار، وحش، قصص", badge: "", file: "numberblocks-subtraction.html" },
+            { icon: "🎈", color: "blue", title: "حفلة فرقعة البالونات", desc: "افرقع البالونات مع التوجيه الصوتي!", badge: "جديد", file: "numberblocks-subtractionV2.html" },
+            { icon: "🏃", color: "orange", title: "عداء نمبربلوكس", desc: "اركض واقفز واجمع العملات!", badge: "مرح", file: "numberblocks-runner.html" },
+            { icon: "🔢", color: "red", title: "تعرف على نمبربلوكس", desc: "شاهد جميع المكعبات من 1 إلى 20!", badge: "", file: "numberblocks-preview.html" }
+        ]
+    }
+};
+
+let currentLang = localStorage.getItem('numblocks-lang') || 'en';
+
+function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('numblocks-lang', lang);
+    document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    
+    document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    renderUI();
+}
+
+function renderUI() {
+    const L = LANG[currentLang];
+    
+    document.getElementById('app-title').textContent = L.title;
+    document.getElementById('app-subtitle').textContent = L.subtitle;
+    document.getElementById('footer-text').textContent = L.footer;
+    
+    const grid = document.getElementById('games-grid');
+    grid.innerHTML = '';
+    
+    L.games.forEach(game => {
+        const card = document.createElement('div');
+        card.className = 'game-card';
+        card.onclick = () => playGame(game.file);
+        
+        card.innerHTML = `
+            <div class="card-icon ${game.color}">${game.icon}</div>
+            <div class="card-content">
+                <div class="card-title">
+                    ${game.title}
+                    ${game.badge ? `<span class="card-badge ${game.badge === 'NEW' || game.badge === 'جديد' || game.badge === 'নতুন' ? 'new' : (game.badge === 'FUN' || game.badge === 'مرح' || game.badge === 'মজা' ? 'fun' : '')}">${game.badge}</span>` : ''}
+                </div>
+                <div class="card-desc">${game.desc}</div>
+            </div>
+            <div class="card-arrow">›</div>
+        `;
+        
+        grid.appendChild(card);
+    });
+}
+
+function playGame(file) {
+    // Pass language to game
+    const url = file + '?lang=' + currentLang;
+    window.location.href = url;
+}
+
+// Init
+document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+document.querySelectorAll('.lang-btn').forEach(btn => {
+    if ((btn.textContent === 'English' && currentLang === 'en') ||
+        (btn.textContent === 'বাংলা' && currentLang === 'bn') ||
+        (btn.textContent === 'العربية' && currentLang === 'ar')) {
+        btn.classList.add('active');
+    } else {
+        btn.classList.remove('active');
+    }
+});
+renderUI();
+
+// Register Service Worker for PWA
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

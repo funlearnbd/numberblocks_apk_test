@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Numberblocks Subtraction V2 - Balloon Pop Party!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Comic Sans MS', sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 50%, #98FB98 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game {
+            max-width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            position: relative;
+        }
+
+        /* Clouds */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            opacity: 0.8;
+            animation: floatCloud 20s linear infinite;
+        }
+        
+        @keyframes floatCloud {
+            from { transform: translateX(-200px); }
+            to { transform: translateX(calc(100vw + 200px)); }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            padding: 10px 15px;
+            gap: 10px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .score-box {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #333;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .level-box {
+            background: linear-gradient(135deg, #FF6B9D, #FF8E53);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        /* Instruction Box */
+        .instruction-box {
+            background: white;
+            border-radius: 20px;
+            padding: 15px 25px;
+            margin: 10px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            z-index: 10;
+        }
+
+        .instruction-text {
+            font-size: 22px;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .instruction-text .highlight {
+            color: #FF6B6B;
+            font-weight: bold;
+            font-size: 28px;
+        }
+
+        .speaker-icon {
+            display: inline-block;
+            animation: speakerPulse 1s ease-in-out infinite;
+            font-size: 24px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        @keyframes speakerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Game Area */
+        .game-area {
+            background: rgba(255,255,255,0.95);
+            border-radius: 30px;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Balloons Container */
+        .balloons-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            min-height: 180px;
+            align-items: flex-end;
+        }
+
+        /* Single Balloon */
+        .balloon-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: floatBalloon 2s ease-in-out infinite;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .balloon-wrap:nth-child(odd) { animation-delay: 0.5s; }
+        .balloon-wrap:nth-child(3n) { animation-delay: 1s; }
+
+        @keyframes floatBalloon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .balloon-wrap:hover {
+            transform: scale(1.1);
+        }
+
+        .balloon-wrap.popped {
+            animation: popBalloon 0.4s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes popBalloon {
+            0% { transform: scale(1); opacity: 1; }
+            30% { transform: scale(1.4); opacity: 0.8; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .balloon {
+            width: 50px;
+            height: 65px;
+            border-radius: 50% 50% 50% 50%;
+            position: relative;
+            box-shadow: inset -8px -8px 15px rgba(0,0,0,0.15), inset 8px 8px 15px rgba(255,255,255,0.4);
+        }
+
+        .balloon::before {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 12px solid inherit;
+        }
+
+        .balloon::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 12px;
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+        }
+
+        .string {
+            width: 2px;
+            height: 40px;
+            background: #999;
+            margin-top: 5px;
+        }
+
+        /* Balloon Colors */
+        .balloon.red { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); }
+        .balloon.red::before { border-top-color: #ee5a5a; }
+        .balloon.orange { background: linear-gradient(135deg, #ffa94d, #ff922b); }
+        .balloon.orange::before { border-top-color: #ff922b; }
+        .balloon.yellow { background: linear-gradient(135deg, #ffe066, #ffd43b); }
+        .balloon.yellow::before { border-top-color: #ffd43b; }
+        .balloon.green { background: linear-gradient(135deg, #69db7c, #51cf66); }
+        .balloon.green::before { border-top-color: #51cf66; }
+        .balloon.blue { background: linear-gradient(135deg, #74c0fc, #4dabf7); }
+        .balloon.blue::before { border-top-color: #4dabf7; }
+        .balloon.purple { background: linear-gradient(135deg, #b197fc, #9775fa); }
+        .balloon.purple::before { border-top-color: #9775fa; }
+        .balloon.pink { background: linear-gradient(135deg, #f783ac, #e64980); }
+        .balloon.pink::before { border-top-color: #e64980; }
+
+        /* Pop particles */
+        .pop-particle {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFly 0.5s ease-out forwards;
+        }
+
+        @keyframes particleFly {
+            to { 
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Numberblock (small, holding balloons) */
+        .block-holder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .number-block {
+            display: grid;
+            gap: 1px;
+            filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.3));
+        }
+
+        .unit {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            position: relative;
+        }
+
+        .face { position: absolute; width: 100%; height: 100%; }
+        
+        .eye {
+            position: absolute;
+            top: 20%;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            border: 1px solid #000;
+        }
+        .eye.left { left: 3px; }
+        .eye.right { right: 3px; }
+        .mouth {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 3px;
+            border-bottom: 1.5px solid #000;
+            border-radius: 0 0 5px 5px;
+        }
+
+        /* Happy/Sad expressions */
+        .block-holder.sad .mouth {
+            border-bottom: none;
+            border-top: 1.5px solid #000;
+            border-radius: 5px 5px 0 0;
+        }
+
+        /* Colors */
+        .c1 { background: #ff4d4d; border: 1.5px solid #cc0000; }
+        .c2 { background: #ffaf40; border: 1.5px solid #e67e22; }
+        .c3 { background: #fffa65; border: 1.5px solid #f1c40f; }
+        .c4 { background: #32ff7e; border: 1.5px solid #2ecc71; }
+        .c5 { background: #18dcff; border: 1.5px solid #3498db; }
+        .c6 { background: #a29bfe; border: 1.5px solid #6c5ce7; }
+        .c7 { background: #fab1a0; border: 1.5px solid #e17055; }
+        .c8 { background: #ff00ff; border: 1.5px solid #c71585; }
+        .c9 { background: #b2bec3; border: 1.5px solid #636e72; }
+        .c10 { background: white; border: 2px solid #ff4d4d; }
+
+        /* Answer Buttons */
+        .answers {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .answer-btn {
+            background: linear-gradient(180deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            width: 70px;
+            height: 70px;
+            font-size: 32px;
+            font-weight: bold;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #2E7D32, 0 8px 15px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .answer-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #2E7D32;
+        }
+
+        .answer-btn.correct {
+            background: linear-gradient(180deg, #8BC34A, #689F38);
+            animation: correctBounce 0.5s ease;
+        }
+
+        .answer-btn.wrong {
+            background: linear-gradient(180deg, #f44336, #d32f2f);
+            box-shadow: 0 5px 0 #b71c1c;
+            animation: wrongShake 0.5s ease;
+        }
+
+        @keyframes correctBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .screen.active { display: flex; }
+
+        /* Start Screen */
+        .title {
+            font-size: 36px;
+            color: #FF6B6B;
+            text-shadow: 3px 3px 0 #fff, 5px 5px 0 rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 20px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .start-btn {
+            background: linear-gradient(180deg, #FF6B6B, #ee5a5a);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 28px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #cc4444, 0 10px 20px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+            z-index: 10;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .start-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #cc4444;
+        }
+
+        .demo-balloons {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+            z-index: 10;
+        }
+
+        /* Difficulty */
+        .difficulty {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            z-index: 10;
+        }
+
+        .diff-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .diff-btn.easy { background: #4CAF50; color: white; }
+        .diff-btn.medium { background: #FF9800; color: white; }
+        .diff-btn.hard { background: #f44336; color: white; }
+        .diff-btn.selected { 
+            transform: scale(1.1); 
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        /* Results */
+        .result-box {
+            text-align: center;
+        }
+
+        .stars-display {
+            font-size: 60px;
+            margin: 20px 0;
+        }
+
+        .star-icon { 
+            color: #ddd; 
+            transition: all 0.5s;
+            display: inline-block;
+        }
+        .star-icon.earned { 
+            color: #FFD700; 
+            animation: starPop 0.5s ease;
+        }
+
+        @keyframes starPop {
+            0% { transform: scale(0) rotate(-180deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .result-score {
+            font-size: 28px;
+            color: #333;
+            margin: 15px 0;
+        }
+
+        .result-message {
+            font-size: 22px;
+            color: #666;
+            margin: 15px 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-btn {
+            background: linear-gradient(180deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #2E7D32;
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(180deg, #9E9E9E, #757575);
+            box-shadow: 0 4px 0 #616161;
+        }
+
+        .action-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #2E7D32;
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: -10px;
+            animation: confettiFall 3s linear forwards;
+            z-index: 100;
+        }
+
+        @keyframes confettiFall {
+            to {
+                top: 100vh;
+                transform: rotate(720deg);
+            }
+        }
+
+        /* Countdown */
+        .countdown {
+            font-size: 80px;
+            color: #FF6B6B;
+            text-shadow: 3px 3px 0 white;
+            animation: countdownPop 0.5s ease;
+        }
+
+        @keyframes countdownPop {
+            0% { transform: scale(2); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Speaking indicator */
+        .speaking-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 200;
+        }
+
+        .speaking-indicator.active { display: flex; }
+
+        .speaking-wave {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .speaking-wave span {
+            width: 4px;
+            height: 15px;
+            background: #4CAF50;
+            border-radius: 2px;
+            animation: wave 0.5s ease-in-out infinite;
+        }
+
+        .speaking-wave span:nth-child(2) { animation-delay: 0.1s; }
+        .speaking-wave span:nth-child(3) { animation-delay: 0.2s; }
+        .speaking-wave span:nth-child(4) { animation-delay: 0.3s; }
+
+        @keyframes wave {
+            0%, 100% { height: 5px; }
+            50% { height: 20px; }
+        }
+
+        /* Responsive */
+        @media (max-width: 400px) {
+            .title { font-size: 28px; }
+            .balloon { width: 40px; height: 52px; }
+            .answer-btn { width: 60px; height: 60px; font-size: 26px; }
+            .instruction-text { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+<div id="game">
+    <!-- Clouds background -->
+    <div class="cloud" style="width:100px;height:50px;top:10%;animation-delay:0s;"></div>
+    <div class="cloud" style="width:150px;height:60px;top:20%;animation-delay:-5s;"></div>
+    <div class="cloud" style="width:80px;height:40px;top:5%;animation-delay:-12s;"></div>
+
+    <!-- Speaking Indicator -->
+    <div class="speaking-indicator" id="speaking-indicator">
+        <div class="speaking-wave">
+            <span></span><span></span><span></span><span></span>
+        </div>
+        Speaking...
+    </div>
+
+    <!-- Start Screen -->
+    <div class="screen active" id="start-screen">
+        <div style="position:absolute;top:15px;left:15px;display:flex;gap:10px;z-index:100;">
+            <button onclick="goHome()" style="width:45px;height:45px;border-radius:50%;border:none;background:white;font-size:22px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.2);">🏠</button>
+            <select id="lang-select" onchange="changeLang()" style="padding:10px;border-radius:12px;border:2px solid #ddd;font-weight:bold;background:white;">
+                <option value="en">English</option>
+                <option value="bn">বাংলা</option>
+                <option value="ar">العربية</option>
+            </select>
+        </div>
+        <div class="title">🎈 Balloon Pop Party! 🎈</div>
+        <div class="subtitle" id="subtitle-text">Learn subtraction by popping balloons!</div>
+        
+        <div class="demo-balloons">
+            <div class="balloon-wrap">
+                <div class="balloon red"></div>
+                <div class="string"></div>
+            </div>
+            <div class="balloon-wrap">
+                <div class="balloon yellow"></div>
+                <div class="string"></div>
+            </div>
+            <div class="balloon-wrap">
+                <div class="balloon blue"></div>
+                <div class="string"></div>
+            </div>
+            <div class="balloon-wrap">
+                <div class="balloon green"></div>
+                <div class="string"></div>
+            </div>
+            <div class="balloon-wrap">
+                <div class="balloon purple"></div>
+                <div class="string"></div>
+            </div>
+        </div>
+
+        <div class="difficulty">
+            <button class="diff-btn easy selected" onclick="setDifficulty('easy')">Easy<br>(1-5)</button>
+            <button class="diff-btn medium" onclick="setDifficulty('medium')">Medium<br>(1-10)</button>
+            <button class="diff-btn hard" onclick="setDifficulty('hard')">Hard<br>(1-15)</button>
+        </div>
+
+        <button class="start-btn" onclick="startGame()">🎈 Let's Play! 🎈</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div class="screen" id="game-screen">
+        <div class="header">
+            <div class="score-box">⭐ <span id="score">0</span></div>
+            <div class="level-box">Round <span id="round">1</span>/10</div>
+        </div>
+
+        <div class="instruction-box" id="instruction-box">
+            <div class="instruction-text" id="instruction-text">
+                Get ready!
+            </div>
+            <span class="speaker-icon" onclick="repeatInstruction()">🔊</span>
+        </div>
+
+        <div class="game-area" id="game-area">
+            <!-- Dynamic content -->
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div class="screen" id="results-screen">
+        <div class="title">🎉 Amazing! 🎉</div>
+        
+        <div class="game-area">
+            <div class="result-box">
+                <div class="stars-display" id="result-stars">
+                    <span class="star-icon">★</span>
+                    <span class="star-icon">★</span>
+                    <span class="star-icon">★</span>
+                </div>
+                
+                <div class="result-score">
+                    You got <span id="final-score">0</span> out of 10!
+                </div>
+                
+                <div class="result-message" id="result-message"></div>
+                
+                <div class="btn-group">
+                    <button class="action-btn" onclick="startGame()">🔄 Play Again</button>
+                    <button class="action-btn secondary" onclick="goHome()">🏠 Home</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Audio System
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playSound(type) {
+    initAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    
+    if (type === 'pop') {
+        // Balloon pop - short burst
+        const noise = audioCtx.createBufferSource();
+        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < buffer.length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / 500);
+        }
+        noise.buffer = buffer;
+        const gain = audioCtx.createGain();
+        noise.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.5, now);
+        noise.start(now);
+    } else if (type === 'correct') {
+        // Happy ding ding ding
+        [523, 659, 784, 1047].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.12);
+            gain.gain.setValueAtTime(0.2, now + i * 0.12);
+            gain.gain.setValueAtTime(0.01, now + i * 0.12 + 0.15);
+            osc.start(now + i * 0.12);
+            osc.stop(now + i * 0.12 + 0.2);
+        });
+    } else if (type === 'wrong') {
+        // Sad buzzer
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.setValueAtTime(100, now + 0.2);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.01, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.4);
+    } else if (type === 'countdown') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.25);
+    }
+}
+
+// Speech System
+let currentInstruction = '';
+let speechQueue = [];
+let isSpeaking = false;
+
+function speak(text, callback = null) {
+    if (!('speechSynthesis' in window)) {
+        if (callback) setTimeout(callback, 1000);
+        return;
+    }
+    
+    speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+    utterance.volume = 1;
+    
+    // Try to get a child-friendly voice
+    const voices = speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google'));
+    if (preferredVoice) utterance.voice = preferredVoice;
+    
+    utterance.onstart = () => {
+        isSpeaking = true;
+        document.getElementById('speaking-indicator').classList.add('active');
+    };
+    
+    utterance.onend = () => {
+        isSpeaking = false;
+        document.getElementById('speaking-indicator').classList.remove('active');
+        if (callback) callback();
+    };
+    
+    utterance.onerror = () => {
+        isSpeaking = false;
+        document.getElementById('speaking-indicator').classList.remove('active');
+        if (callback) callback();
+    };
+    
+    speechSynthesis.speak(utterance);
+}
+
+function repeatInstruction() {
+    speak(currentInstruction);
+}
+
+// Game State
+const G = {
+    difficulty: 'easy',
+    maxNum: 5,
+    score: 0,
+    round: 0,
+    totalRounds: 10,
+    num1: 0,
+    num2: 0,
+    answer: 0,
+    poppedCount: 0,
+    phase: 'intro', // intro, popping, answer
+    canPop: false
+};
+
+const balloonColors = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+
+function setDifficulty(diff) {
+    G.difficulty = diff;
+    G.maxNum = diff === 'easy' ? 5 : (diff === 'medium' ? 10 : 15);
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelector(`.diff-btn.${diff}`).classList.add('selected');
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function startGame() {
+    initAudio();
+    G.score = 0;
+    G.round = 0;
+    updateHUD();
+    showScreen('game-screen');
+    
+    // Welcome message
+    speak("Welcome to Balloon Pop Party! Let's learn subtraction together!", () => {
+        setTimeout(nextRound, 500);
+    });
+}
+
+function updateHUD() {
+    document.getElementById('score').textContent = G.score;
+    document.getElementById('round').textContent = G.round;
+}
+
+function nextRound() {
+    G.round++;
+    if (G.round > G.totalRounds) {
+        showResults();
+        return;
+    }
+    
+    // Generate question
+    G.num1 = Math.floor(Math.random() * (G.maxNum - 1)) + 2;
+    G.num2 = Math.floor(Math.random() * (G.num1 - 1)) + 1;
+    G.answer = G.num1 - G.num2;
+    G.poppedCount = 0;
+    G.phase = 'intro';
+    G.canPop = false;
+    
+    updateHUD();
+    renderBalloons();
+    
+    // Voice instruction sequence
+    const introText = `Round ${G.round}! Look! There are ${G.num1} balloons.`;
+    currentInstruction = introText;
+    updateInstructionText(introText);
+    
+    speak(introText, () => {
+        setTimeout(() => {
+            const popText = `Pop ${G.num2} balloon${G.num2 > 1 ? 's' : ''}! Tap ${G.num2} balloon${G.num2 > 1 ? 's' : ''} to pop!`;
+            currentInstruction = popText;
+            updateInstructionText(`Tap to pop <span class="highlight">${G.num2}</span> balloon${G.num2 > 1 ? 's' : ''}! 🎈👆`);
+            
+            speak(popText, () => {
+                G.phase = 'popping';
+                G.canPop = true;
+            });
+        }, 500);
+    });
+}
+
+function updateInstructionText(html) {
+    document.getElementById('instruction-text').innerHTML = html;
+}
+
+function renderBalloons() {
+    const area = document.getElementById('game-area');
+    area.innerHTML = '';
+    
+    const container = document.createElement('div');
+    container.className = 'balloons-container';
+    container.id = 'balloons-container';
+    
+    // Create balloons
+    for (let i = 0; i < G.num1; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = 'balloon-wrap';
+        wrap.dataset.index = i;
+        wrap.onclick = () => popBalloon(wrap, i);
+        
+        const balloon = document.createElement('div');
+        balloon.className = 'balloon ' + balloonColors[i % balloonColors.length];
+        
+        const string = document.createElement('div');
+        string.className = 'string';
+        
+        wrap.appendChild(balloon);
+        wrap.appendChild(string);
+        container.appendChild(wrap);
+    }
+    
+    area.appendChild(container);
+    
+    // Add numberblock holder
+    const holder = document.createElement('div');
+    holder.className = 'block-holder';
+    holder.id = 'block-holder';
+    holder.appendChild(createBlock(G.num1));
+    area.appendChild(holder);
+}
+
+function popBalloon(wrap, index) {
+    if (!G.canPop || G.phase !== 'popping') return;
+    if (wrap.classList.contains('popped')) return;
+    
+    G.poppedCount++;
+    wrap.classList.add('popped');
+    playSound('pop');
+    
+    // Create pop particles
+    const rect = wrap.getBoundingClientRect();
+    createPopParticles(rect.left + rect.width/2, rect.top + rect.height/2, wrap.querySelector('.balloon').classList[1]);
+    
+    // Speak the count
+    speak(G.poppedCount.toString());
+    
+    // Update instruction
+    const remaining = G.num2 - G.poppedCount;
+    if (remaining > 0) {
+        updateInstructionText(`Pop <span class="highlight">${remaining}</span> more!`);
+    }
+    
+    // Check if done popping
+    if (G.poppedCount >= G.num2) {
+        G.canPop = false;
+        G.phase = 'answer';
+        
+        setTimeout(() => {
+            showAnswerPhase();
+        }, 500);
+    }
+}
+
+function createPopParticles(x, y, colorClass) {
+    const colors = {
+        red: '#ff6b6b',
+        orange: '#ffa94d',
+        yellow: '#ffe066',
+        green: '#69db7c',
+        blue: '#74c0fc',
+        purple: '#b197fc',
+        pink: '#f783ac'
+    };
+    
+    const color = colors[colorClass] || '#ff6b6b';
+    
+    for (let i = 0; i < 8; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'pop-particle';
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.background = color;
+        particle.style.setProperty('--tx', (Math.random() - 0.5) * 150 + 'px');
+        particle.style.setProperty('--ty', (Math.random() - 0.5) * 150 + 'px');
+        document.body.appendChild(particle);
+        
+        setTimeout(() => particle.remove(), 500);
+    }
+}
+
+function showAnswerPhase() {
+    const questionText = `You popped ${G.num2}! How many balloons are left?`;
+    currentInstruction = questionText;
+    updateInstructionText(`You popped <span class="highlight">${G.num2}</span>! How many are left? 🤔`);
+    
+    // Update block holder to look sad
+    document.getElementById('block-holder').classList.add('sad');
+    
+    speak(questionText, () => {
+        // Show answer buttons
+        const area = document.getElementById('game-area');
+        
+        const answers = document.createElement('div');
+        answers.className = 'answers';
+        answers.id = 'answers';
+        
+        const options = generateOptions();
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'answer-btn';
+            btn.textContent = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            answers.appendChild(btn);
+        });
+        
+        area.appendChild(answers);
+        
+        speak("Pick the right answer!");
+    });
+}
+
+function generateOptions() {
+    const options = [G.answer];
+    while (options.length < 4) {
+        let wrong;
+        if (options.length === 1) {
+            wrong = G.answer + 1;
+        } else if (options.length === 2) {
+            wrong = Math.max(0, G.answer - 1);
+        } else {
+            wrong = Math.floor(Math.random() * G.maxNum);
+        }
+        if (!options.includes(wrong) && wrong >= 0) {
+            options.push(wrong);
+        }
+    }
+    return options.sort(() => Math.random() - 0.5);
+}
+
+function checkAnswer(selected, btn) {
+    const buttons = document.querySelectorAll('.answer-btn');
+    buttons.forEach(b => b.disabled = true);
+    
+    if (selected === G.answer) {
+        btn.classList.add('correct');
+        G.score++;
+        playSound('correct');
+        
+        const praises = ["Amazing!", "Great job!", "You're so smart!", "Wonderful!", "Excellent!", "Perfect!"];
+        const praise = praises[Math.floor(Math.random() * praises.length)];
+        
+        updateInstructionText(`🎉 ${praise} ${G.num1} - ${G.num2} = ${G.answer}! 🎉`);
+        speak(`${praise} ${G.num1} minus ${G.num2} equals ${G.answer}!`, () => {
+            setTimeout(nextRound, 1000);
+        });
+    } else {
+        btn.classList.add('wrong');
+        playSound('wrong');
+        
+        // Highlight correct answer
+        buttons.forEach(b => {
+            if (parseInt(b.textContent) === G.answer) {
+                b.classList.add('correct');
+            }
+        });
+        
+        updateInstructionText(`Oops! The answer is <span class="highlight">${G.answer}</span>. Let's try the next one!`);
+        speak(`Oops! ${G.num1} minus ${G.num2} equals ${G.answer}. Let's try the next one!`, () => {
+            setTimeout(nextRound, 1500);
+        });
+    }
+    
+    updateHUD();
+}
+
+function showResults() {
+    showScreen('results-screen');
+    
+    const stars = G.score >= 9 ? 3 : (G.score >= 7 ? 2 : (G.score >= 4 ? 1 : 0));
+    document.getElementById('final-score').textContent = G.score;
+    
+    // Animate stars
+    const starEls = document.querySelectorAll('#result-stars .star-icon');
+    starEls.forEach((s, i) => {
+        s.classList.remove('earned');
+        setTimeout(() => {
+            if (i < stars) {
+                s.classList.add('earned');
+                playSound('correct');
+            }
+        }, 500 + i * 400);
+    });
+    
+    // Message
+    const messages = [
+        "Keep practicing! You can do it! 💪",
+        "Good try! Practice makes perfect! 🌟",
+        "Nice work! You're getting better! 😊",
+        "Great job! You're a subtraction star! ⭐",
+        "AMAZING! You're a balloon popping champion! 🏆"
+    ];
+    document.getElementById('result-message').textContent = messages[Math.min(stars + 1, 4)];
+    
+    // Speak results
+    setTimeout(() => {
+        speak(`You got ${G.score} out of 10! ${messages[Math.min(stars + 1, 4)]}`);
+    }, 500 + stars * 400 + 500);
+    
+    // Confetti for good scores
+    if (stars >= 2) {
+        createConfetti();
+    }
+}
+
+function createConfetti() {
+    const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#9b59b6'];
+    for (let i = 0; i < 50; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+            confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
+            document.body.appendChild(confetti);
+            
+            setTimeout(() => confetti.remove(), 4000);
+        }, i * 50);
+    }
+}
+
+function goHome() {
+    speechSynthesis.cancel();
+    document.querySelectorAll('#result-stars .star-icon').forEach(s => s.classList.remove('earned'));
+    showScreen('start-screen');
+}
+
+// Numberblock creator (simplified)
+function getLayout(n) {
+    if (n <= 2) return { cols: n, pattern: Array.from({length: n}, (_, i) => [0, i]) };
+    if (n <= 4) return { cols: 2, pattern: Array.from({length: n}, (_, i) => [Math.floor(i/2), i%2]) };
+    return { cols: 3, pattern: Array.from({length: n}, (_, i) => [Math.floor(i/3), i%3]) };
+}
+
+function createBlock(val) {
+    const wrap = document.createElement('div');
+    wrap.className = 'number-block';
+    
+    const layout = getLayout(val);
+    wrap.style.gridTemplateColumns = `repeat(${layout.cols}, 1fr)`;
+    
+    const colorNum = Math.min(val, 10);
+    
+    layout.pattern.forEach((pos, idx) => {
+        const unit = document.createElement('div');
+        unit.className = `unit c${colorNum}`;
+        unit.style.gridRow = pos[0] + 1;
+        unit.style.gridColumn = pos[1] + 1;
+        
+        if (idx === 0) {
+            const face = document.createElement('div');
+            face.className = 'face';
+            face.innerHTML = '<div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>';
+            unit.appendChild(face);
+        }
+        wrap.appendChild(unit);
+    });
+    
+    return wrap;
+}
+
+// Load voices
+if ('speechSynthesis' in window) {
+    speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+
+// Multilingual support
+const LANG_DATA = {
+    en: {
+        subtitle: "Learn subtraction by popping balloons!",
+        easy: "Easy", medium: "Medium", hard: "Hard",
+        play: "🎈 Let's Play! 🎈",
+        round: "Round",
+        numbers: ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen"]
+    },
+    bn: {
+        subtitle: "বেলুন ফাটিয়ে বিয়োগ শিখো!",
+        easy: "সহজ", medium: "মাঝারি", hard: "কঠিন",
+        play: "🎈 খেলা শুরু! 🎈",
+        round: "রাউন্ড",
+        numbers: ["শূন্য","এক","দুই","তিন","চার","পাঁচ","ছয়","সাত","আট","নয়","দশ","এগারো","বারো","তেরো","চৌদ্দ","পনেরো"]
+    },
+    ar: {
+        subtitle: "تعلم الطرح بفرقعة البالونات!",
+        easy: "سهل", medium: "متوسط", hard: "صعب",
+        play: "🎈 هيا نلعب! 🎈",
+        round: "الجولة",
+        numbers: ["صفر","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة","عشرة","أحد عشر","اثنا عشر","ثلاثة عشر","أربعة عشر","خمسة عشر"]
+    }
+};
+
+let currentLang = 'en';
+
+function goHome() {
+    window.location.href = 'index.html';
+}
+
+function changeLang() {
+    currentLang = document.getElementById('lang-select').value;
+    document.body.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+    const L = LANG_DATA[currentLang];
+    document.getElementById('subtitle-text').textContent = L.subtitle;
+    document.querySelector('.start-btn').textContent = L.play;
+}
+
+// Read language from URL
+const urlParams = new URLSearchParams(window.location.search);
+const langParam = urlParams.get('lang');
+if (langParam && LANG_DATA[langParam]) {
+    currentLang = langParam;
+    document.getElementById('lang-select').value = langParam;
+    changeLang();
+}
+</script>
+</body>
+</html>

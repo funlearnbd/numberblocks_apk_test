@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Numberblocks Subtraction!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Comic Sans MS', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game {
+            max-width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            margin-bottom: 15px;
+        }
+
+        .score-box {
+            background: rgba(0,0,0,0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-box span { color: #FFD700; font-weight: bold; }
+
+        .level-badge {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        /* Game Area */
+        .game-area {
+            background: white;
+            border-radius: 25px;
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        /* Question Display */
+        .question {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .equation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            margin: 20px 0;
+        }
+
+        .equation .num { color: #667eea; }
+        .equation .op { color: #FF6B6B; }
+        .equation .result { 
+            color: #4CAF50;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Numberblock Display */
+        .block-display {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            min-height: 200px;
+            flex-wrap: wrap;
+        }
+
+        .block-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .block-label {
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .number-block {
+            display: grid;
+            gap: 2px;
+            filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.3));
+            transition: all 0.3s ease;
+        }
+
+        .unit {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            position: relative;
+            box-shadow: inset 0 0 6px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .unit.removing {
+            animation: removeBlock 0.5s ease-out forwards;
+        }
+
+        @keyframes removeBlock {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2) rotate(10deg); opacity: 0.5; }
+            100% { transform: scale(0) translateY(-50px); opacity: 0; }
+        }
+
+        .unit.removed {
+            opacity: 0.2;
+            transform: scale(0.8);
+        }
+
+        .face { position: absolute; width: 100%; height: 100%; }
+        
+        .eye {
+            position: absolute;
+            top: 20%;
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            border: 1.5px solid #000;
+        }
+        .eye::after {
+            content: '';
+            position: absolute;
+            right: 1px;
+            top: 1px;
+            width: 2px;
+            height: 2px;
+            background: #000;
+            border-radius: 50%;
+        }
+        .eye.left { left: 5px; }
+        .eye.right { right: 5px; }
+        .mouth {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 5px;
+            border-bottom: 2px solid #000;
+            border-radius: 0 0 8px 8px;
+        }
+
+        /* Sad face when blocks removed */
+        .sad .mouth {
+            border-bottom: none;
+            border-top: 2px solid #000;
+            border-radius: 8px 8px 0 0;
+            bottom: 20%;
+        }
+
+        /* Colors */
+        .c1 { background: #ff4d4d; border: 2px solid #cc0000; }
+        .c2 { background: #ffaf40; border: 2px solid #e67e22; }
+        .c3 { background: #fffa65; border: 2px solid #f1c40f; }
+        .c4 { background: #32ff7e; border: 2px solid #2ecc71; }
+        .c5 { background: #18dcff; border: 2px solid #3498db; }
+        .c6 { background: #a29bfe; border: 2px solid #6c5ce7; }
+        .c7 { background: #fab1a0; border: 2px solid #e17055; }
+        .c8 { background: #ff00ff; border: 2px solid #c71585; }
+        .c9 { background: #b2bec3; border: 2px solid #636e72; }
+        .c10 { background: white; border: 2px solid #ff4d4d; }
+
+        /* Answer Buttons */
+        .answers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .answer-btn {
+            background: linear-gradient(180deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #2E7D32;
+            transition: all 0.1s;
+        }
+
+        .answer-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #2E7D32;
+        }
+
+        .answer-btn.correct {
+            background: linear-gradient(180deg, #8BC34A, #689F38);
+            animation: correctPulse 0.5s ease;
+        }
+
+        .answer-btn.wrong {
+            background: linear-gradient(180deg, #f44336, #d32f2f);
+            animation: wrongShake 0.5s ease;
+        }
+
+        @keyframes correctPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Feedback */
+        .feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60px;
+            pointer-events: none;
+            animation: feedbackPop 1s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes feedbackPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        /* Mode Selection */
+        .mode-select {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .mode-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #4a3f7a;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.1s;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .mode-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #4a3f7a;
+        }
+
+        .mode-btn .icon { font-size: 35px; }
+        .mode-btn .text { text-align: left; }
+        .mode-btn .text small { 
+            display: block; 
+            font-weight: normal; 
+            font-size: 12px; 
+            opacity: 0.8; 
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .screen.active { display: flex; }
+
+        .title {
+            font-size: 32px;
+            color: white;
+            text-shadow: 3px 3px 0 #FF6B6B;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Progress */
+        .progress-wrap {
+            width: 100%;
+            max-width: 300px;
+            height: 12px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+
+        /* Stars */
+        .stars-display {
+            font-size: 50px;
+            margin: 15px 0;
+        }
+
+        .star-icon { color: #444; transition: all 0.3s; }
+        .star-icon.earned { color: #FFD700; transform: scale(1.1); }
+
+        /* Story Mode */
+        .story-text {
+            font-size: 22px;
+            color: #333;
+            text-align: center;
+            margin: 20px 0;
+            line-height: 1.6;
+            padding: 0 10px;
+        }
+
+        .story-text .highlight {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        /* Hint */
+        .hint-btn {
+            background: rgba(0,0,0,0.1);
+            border: 2px dashed #999;
+            color: #666;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .hint-btn:hover { background: rgba(0,0,0,0.15); }
+
+        .hint-text {
+            background: #FFF3CD;
+            border: 1px solid #FFCC00;
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            color: #856404;
+            font-size: 14px;
+        }
+
+        /* Animations */
+        .bounce {
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Monster for visual mode */
+        .monster {
+            font-size: 60px;
+            animation: monsterBounce 0.5s ease infinite alternate;
+        }
+
+        @keyframes monsterBounce {
+            from { transform: translateY(0) rotate(-5deg); }
+            to { transform: translateY(-10px) rotate(5deg); }
+        }
+
+        .monster.eating {
+            animation: monsterEat 0.3s ease;
+        }
+
+        @keyframes monsterEat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+
+        /* Difficulty selector */
+        .difficulty {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .diff-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .diff-btn.easy { background: #4CAF50; color: white; }
+        .diff-btn.medium { background: #FF9800; color: white; }
+        .diff-btn.hard { background: #f44336; color: white; }
+        .diff-btn.selected { transform: scale(1.1); box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+
+        /* Next button */
+        .next-btn {
+            background: linear-gradient(180deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #1565C0;
+            margin-top: 20px;
+        }
+
+        .next-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #1565C0;
+        }
+
+        .home-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .equation { font-size: 36px; }
+            .unit { width: 25px; height: 25px; }
+            .answer-btn { font-size: 22px; padding: 12px; }
+            .title { font-size: 26px; }
+            .story-text { font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+<div id="game">
+    <!-- Menu Screen -->
+    <div class="screen active" id="menu-screen">
+        <div style="position:absolute;top:15px;left:15px;display:flex;gap:10px;z-index:100;">
+            <button onclick="window.location.href='index.html'" style="width:45px;height:45px;border-radius:50%;border:none;background:white;font-size:22px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.2);">🏠</button>
+            <select id="lang-select" onchange="changeLangSub()" style="padding:10px;border-radius:12px;border:2px solid #ddd;font-weight:bold;background:white;">
+                <option value="en">English</option>
+                <option value="bn">বাংলা</option>
+                <option value="ar">العربية</option>
+            </select>
+        </div>
+        <div class="title">🔢 Numberblocks<br>Subtraction! ➖</div>
+        <div class="subtitle" id="sub-subtitle">Learn to subtract with your block friends!</div>
+        
+        <div class="game-area">
+            <div class="mode-select">
+                <button class="mode-btn" onclick="startMode('visual')">
+                    <span class="icon">👀</span>
+                    <span class="text">Visual Mode<small>Watch blocks disappear!</small></span>
+                </button>
+                <button class="mode-btn" onclick="startMode('quiz')">
+                    <span class="icon">🧮</span>
+                    <span class="text">Quiz Mode<small>Solve subtraction problems!</small></span>
+                </button>
+                <button class="mode-btn" onclick="startMode('monster')">
+                    <span class="icon">👾</span>
+                    <span class="text">Monster Munch<small>How many blocks are left?</small></span>
+                </button>
+                <button class="mode-btn" onclick="startMode('story')">
+                    <span class="icon">📖</span>
+                    <span class="text">Story Problems<small>Fun subtraction stories!</small></span>
+                </button>
+            </div>
+            
+            <div class="difficulty">
+                <button class="diff-btn easy selected" onclick="setDifficulty('easy')">Easy (1-5)</button>
+                <button class="diff-btn medium" onclick="setDifficulty('medium')">Medium (1-10)</button>
+                <button class="diff-btn hard" onclick="setDifficulty('hard')">Hard (1-20)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div class="screen" id="game-screen">
+        <div class="header">
+            <div class="score-box">⭐ <span id="score">0</span></div>
+            <div class="score-box">❤️ <span id="streak">0</span></div>
+            <div class="level-badge">Q<span id="question-num">1</span>/10</div>
+        </div>
+
+        <div class="progress-wrap">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+
+        <div class="game-area" id="game-area">
+            <!-- Dynamic content here -->
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div class="screen" id="results-screen">
+        <div class="title">🎉 Great Job! 🎉</div>
+        
+        <div class="game-area">
+            <div class="stars-display" id="result-stars">
+                <span class="star-icon">★</span>
+                <span class="star-icon">★</span>
+                <span class="star-icon">★</span>
+            </div>
+            
+            <div class="score-box" style="font-size: 24px; margin: 20px;">
+                Score: <span id="final-score">0</span> / 10
+            </div>
+            
+            <p id="result-message" style="font-size: 20px; color: #666; margin: 15px 0;"></p>
+            
+            <button class="next-btn" onclick="restartGame()">Play Again! 🔄</button>
+            <button class="home-btn" onclick="goHome()">🏠 Home</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Audio
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+}
+
+function playSound(type) {
+    initAudio();
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    
+    if (type === 'correct') {
+        [523, 659, 784].forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+            gain.gain.setValueAtTime(0.2, now + i * 0.1);
+            gain.gain.setValueAtTime(0.01, now + i * 0.1 + 0.15);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.2);
+        });
+    } else if (type === 'wrong') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.01, now + 0.3);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    } else if (type === 'pop') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.setValueAtTime(200, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.setValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+    } else if (type === 'munch') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.setValueAtTime(100, now + 0.1);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.setValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+    }
+}
+
+// Game State
+const G = {
+    mode: 'visual',
+    difficulty: 'easy',
+    maxNum: 5,
+    score: 0,
+    streak: 0,
+    questionNum: 0,
+    totalQuestions: 10,
+    currentAnswer: 0,
+    num1: 0,
+    num2: 0
+};
+
+const stories = [
+    { template: "There were <b class='highlight'>{a}</b> birds on a tree. <b class='highlight'>{b}</b> flew away. How many are left?", emoji: "🐦" },
+    { template: "<b class='highlight'>{a}</b> apples were on the table. We ate <b class='highlight'>{b}</b>. How many are left?", emoji: "🍎" },
+    { template: "A shop had <b class='highlight'>{a}</b> toys. <b class='highlight'>{b}</b> were sold. How many remain?", emoji: "🧸" },
+    { template: "<b class='highlight'>{a}</b> balloons were at the party. <b class='highlight'>{b}</b> popped! How many are left?", emoji: "🎈" },
+    { template: "There were <b class='highlight'>{a}</b> cookies. <b class='highlight'>{b}</b> were eaten. How many remain?", emoji: "🍪" },
+    { template: "<b class='highlight'>{a}</b> stars were shining. <b class='highlight'>{b}</b> went behind clouds. How many can you see?", emoji: "⭐" },
+    { template: "A bus had <b class='highlight'>{a}</b> passengers. <b class='highlight'>{b}</b> got off. How many are still on?", emoji: "🚌" },
+    { template: "<b class='highlight'>{a}</b> fish were swimming. <b class='highlight'>{b}</b> swam away. How many are left?", emoji: "🐟" },
+];
+
+// Layouts for numberblocks
+function getLayout(n) {
+    if (n === 1) return { cols: 1, pattern: [[0, 0]] };
+    if (n === 2) return { cols: 2, pattern: [[0, 0], [0, 1]] };
+    if (n === 3) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1]] };
+    if (n === 4) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1]] };
+    if (n === 5) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1]] };
+    if (n === 6) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1]] };
+    if (n === 7) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]] };
+    if (n === 8) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]] };
+    if (n === 9) return { cols: 3, pattern: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]] };
+    if (n === 10) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1]] };
+    // 11-20 simplified for this game
+    const cols = n <= 15 ? 3 : 4;
+    const pattern = [];
+    for (let i = 0; i < n; i++) {
+        pattern.push([Math.floor(i / cols), i % cols]);
+    }
+    return { cols, pattern };
+}
+
+function createBlock(val, showFace = true, sad = false) {
+    const wrap = document.createElement('div');
+    wrap.className = 'number-block' + (sad ? ' sad' : '');
+    
+    const layout = getLayout(val);
+    wrap.style.gridTemplateColumns = `repeat(${layout.cols}, 1fr)`;
+    
+    const colorNum = Math.min(val, 10);
+    const sorted = [...layout.pattern].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const facePos = sorted[0];
+    
+    layout.pattern.forEach((pos, idx) => {
+        const unit = document.createElement('div');
+        unit.className = `unit c${colorNum}`;
+        unit.style.gridRow = pos[0] + 1;
+        unit.style.gridColumn = pos[1] + 1;
+        unit.dataset.index = idx;
+        
+        if (showFace && pos[0] === facePos[0] && pos[1] === facePos[1]) {
+            const face = document.createElement('div');
+            face.className = 'face';
+            face.innerHTML = '<div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>';
+            unit.appendChild(face);
+        }
+        wrap.appendChild(unit);
+    });
+    
+    return wrap;
+}
+
+function generateQuestion() {
+    G.num1 = Math.floor(Math.random() * (G.maxNum - 1)) + 2; // At least 2
+    G.num2 = Math.floor(Math.random() * G.num1) + 1; // 1 to num1
+    if (G.num2 === G.num1) G.num2--; // Ensure result > 0
+    if (G.num2 < 1) G.num2 = 1;
+    G.currentAnswer = G.num1 - G.num2;
+}
+
+function generateAnswerOptions() {
+    const options = [G.currentAnswer];
+    while (options.length < 4) {
+        let wrong = Math.floor(Math.random() * G.maxNum) + 1;
+        if (!options.includes(wrong) && wrong !== G.currentAnswer) {
+            options.push(wrong);
+        }
+    }
+    return options.sort(() => Math.random() - 0.5);
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function setDifficulty(diff) {
+    G.difficulty = diff;
+    G.maxNum = diff === 'easy' ? 5 : (diff === 'medium' ? 10 : 20);
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelector(`.diff-btn.${diff}`).classList.add('selected');
+}
+
+function startMode(mode) {
+    initAudio();
+    G.mode = mode;
+    G.score = 0;
+    G.streak = 0;
+    G.questionNum = 0;
+    showScreen('game-screen');
+    nextQuestion();
+}
+
+function nextQuestion() {
+    G.questionNum++;
+    if (G.questionNum > G.totalQuestions) {
+        showResults();
+        return;
+    }
+    
+    generateQuestion();
+    updateHUD();
+    
+    const area = document.getElementById('game-area');
+    area.innerHTML = '';
+    
+    if (G.mode === 'visual') renderVisualMode(area);
+    else if (G.mode === 'quiz') renderQuizMode(area);
+    else if (G.mode === 'monster') renderMonsterMode(area);
+    else if (G.mode === 'story') renderStoryMode(area);
+}
+
+function updateHUD() {
+    document.getElementById('score').textContent = G.score;
+    document.getElementById('streak').textContent = G.streak;
+    document.getElementById('question-num').textContent = G.questionNum;
+    document.getElementById('progress').style.width = ((G.questionNum - 1) / G.totalQuestions * 100) + '%';
+}
+
+function renderVisualMode(area) {
+    const question = document.createElement('div');
+    question.className = 'question';
+    question.textContent = `${G.num1} take away ${G.num2} equals...?`;
+    area.appendChild(question);
+    
+    const display = document.createElement('div');
+    display.className = 'block-display';
+    
+    const container = document.createElement('div');
+    container.className = 'block-container';
+    
+    const block = createBlock(G.num1);
+    block.id = 'main-block';
+    container.appendChild(block);
+    
+    const label = document.createElement('div');
+    label.className = 'block-label';
+    label.textContent = G.num1;
+    label.id = 'block-label';
+    container.appendChild(label);
+    
+    display.appendChild(container);
+    area.appendChild(display);
+    
+    // Animate removal after delay
+    setTimeout(() => {
+        const units = block.querySelectorAll('.unit');
+        const toRemove = Array.from(units).slice(-G.num2);
+        
+        toRemove.forEach((unit, i) => {
+            setTimeout(() => {
+                unit.classList.add('removing');
+                playSound('pop');
+            }, i * 200);
+        });
+        
+        setTimeout(() => {
+            toRemove.forEach(u => u.classList.add('removed'));
+            document.getElementById('block-label').textContent = G.currentAnswer;
+            block.classList.add('sad');
+            
+            // Show answers
+            renderAnswers(area);
+        }, G.num2 * 200 + 500);
+    }, 1000);
+}
+
+function renderQuizMode(area) {
+    const equation = document.createElement('div');
+    equation.className = 'equation';
+    equation.innerHTML = `
+        <span class="num">${G.num1}</span>
+        <span class="op">−</span>
+        <span class="num">${G.num2}</span>
+        <span class="op">=</span>
+        <span class="result">?</span>
+    `;
+    area.appendChild(equation);
+    
+    const display = document.createElement('div');
+    display.className = 'block-display';
+    
+    // Show both blocks
+    const cont1 = document.createElement('div');
+    cont1.className = 'block-container';
+    cont1.appendChild(createBlock(G.num1));
+    const lbl1 = document.createElement('div');
+    lbl1.className = 'block-label';
+    lbl1.textContent = G.num1;
+    cont1.appendChild(lbl1);
+    
+    const minus = document.createElement('div');
+    minus.style.cssText = 'font-size: 40px; color: #FF6B6B; font-weight: bold;';
+    minus.textContent = '−';
+    
+    const cont2 = document.createElement('div');
+    cont2.className = 'block-container';
+    cont2.appendChild(createBlock(G.num2));
+    const lbl2 = document.createElement('div');
+    lbl2.className = 'block-label';
+    lbl2.textContent = G.num2;
+    cont2.appendChild(lbl2);
+    
+    display.appendChild(cont1);
+    display.appendChild(minus);
+    display.appendChild(cont2);
+    area.appendChild(display);
+    
+    renderAnswers(area);
+}
+
+function renderMonsterMode(area) {
+    const question = document.createElement('div');
+    question.className = 'question';
+    question.textContent = `The monster ate ${G.num2} blocks! How many are left?`;
+    area.appendChild(question);
+    
+    const display = document.createElement('div');
+    display.className = 'block-display';
+    
+    // Block
+    const cont = document.createElement('div');
+    cont.className = 'block-container';
+    const block = createBlock(G.num1);
+    block.id = 'main-block';
+    cont.appendChild(block);
+    const lbl = document.createElement('div');
+    lbl.className = 'block-label';
+    lbl.textContent = G.num1;
+    lbl.id = 'block-label';
+    cont.appendChild(lbl);
+    
+    // Monster
+    const monster = document.createElement('div');
+    monster.className = 'monster';
+    monster.id = 'monster';
+    monster.textContent = '👾';
+    
+    display.appendChild(cont);
+    display.appendChild(monster);
+    area.appendChild(display);
+    
+    // Monster eating animation
+    setTimeout(() => {
+        const mon = document.getElementById('monster');
+        const units = block.querySelectorAll('.unit');
+        const toRemove = Array.from(units).slice(-G.num2);
+        
+        toRemove.forEach((unit, i) => {
+            setTimeout(() => {
+                mon.classList.add('eating');
+                setTimeout(() => mon.classList.remove('eating'), 300);
+                unit.classList.add('removing');
+                playSound('munch');
+            }, i * 400);
+        });
+        
+        setTimeout(() => {
+            toRemove.forEach(u => u.classList.add('removed'));
+            document.getElementById('block-label').textContent = '?';
+            renderAnswers(area);
+        }, G.num2 * 400 + 500);
+    }, 800);
+}
+
+function renderStoryMode(area) {
+    const story = stories[Math.floor(Math.random() * stories.length)];
+    
+    const emoji = document.createElement('div');
+    emoji.style.cssText = 'font-size: 60px; margin: 10px;';
+    emoji.textContent = story.emoji;
+    area.appendChild(emoji);
+    
+    const text = document.createElement('div');
+    text.className = 'story-text';
+    text.innerHTML = story.template.replace('{a}', G.num1).replace('{b}', G.num2);
+    area.appendChild(text);
+    
+    const display = document.createElement('div');
+    display.className = 'block-display';
+    display.style.transform = 'scale(0.8)';
+    
+    const cont = document.createElement('div');
+    cont.className = 'block-container';
+    cont.appendChild(createBlock(G.num1));
+    display.appendChild(cont);
+    area.appendChild(display);
+    
+    renderAnswers(area);
+    
+    // Hint button
+    const hint = document.createElement('button');
+    hint.className = 'hint-btn';
+    hint.textContent = '💡 Need a hint?';
+    hint.onclick = () => {
+        if (!document.querySelector('.hint-text')) {
+            const hintText = document.createElement('div');
+            hintText.className = 'hint-text';
+            hintText.textContent = `Think: ${G.num1} - ${G.num2} = ?`;
+            area.appendChild(hintText);
+        }
+    };
+    area.appendChild(hint);
+}
+
+function renderAnswers(area) {
+    const answers = document.createElement('div');
+    answers.className = 'answers';
+    
+    generateAnswerOptions().forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'answer-btn';
+        btn.textContent = opt;
+        btn.onclick = () => checkAnswer(opt, btn);
+        answers.appendChild(btn);
+    });
+    
+    area.appendChild(answers);
+}
+
+function checkAnswer(selected, btn) {
+    const buttons = document.querySelectorAll('.answer-btn');
+    buttons.forEach(b => b.disabled = true);
+    
+    if (selected === G.currentAnswer) {
+        btn.classList.add('correct');
+        G.score++;
+        G.streak++;
+        playSound('correct');
+        showFeedback('🎉');
+        
+        // Update equation result if in quiz mode
+        const result = document.querySelector('.result');
+        if (result) result.textContent = G.currentAnswer;
+        
+        speak(G.currentAnswer);
+    } else {
+        btn.classList.add('wrong');
+        G.streak = 0;
+        playSound('wrong');
+        showFeedback('😢');
+        
+        // Highlight correct answer
+        buttons.forEach(b => {
+            if (parseInt(b.textContent) === G.currentAnswer) {
+                b.classList.add('correct');
+            }
+        });
+    }
+    
+    updateHUD();
+    
+    setTimeout(nextQuestion, 1500);
+}
+
+function showFeedback(emoji) {
+    const fb = document.createElement('div');
+    fb.className = 'feedback';
+    fb.textContent = emoji;
+    document.getElementById('game-area').appendChild(fb);
+    setTimeout(() => fb.remove(), 1000);
+}
+
+function showResults() {
+    showScreen('results-screen');
+    
+    document.getElementById('final-score').textContent = G.score;
+    
+    const stars = G.score >= 9 ? 3 : (G.score >= 7 ? 2 : (G.score >= 5 ? 1 : 0));
+    const starEls = document.querySelectorAll('#result-stars .star-icon');
+    starEls.forEach((s, i) => {
+        setTimeout(() => {
+            if (i < stars) {
+                s.classList.add('earned');
+                playSound('correct');
+            }
+        }, i * 300);
+    });
+    
+    const messages = [
+        "Keep practicing! You'll get better! 💪",
+        "Good effort! Try again! 😊",
+        "Nice work! You're learning! 🌟",
+        "Great job! Almost perfect! 🎯",
+        "AMAZING! You're a subtraction star! 🏆"
+    ];
+    document.getElementById('result-message').textContent = messages[stars];
+}
+
+function restartGame() {
+    document.querySelectorAll('#result-stars .star-icon').forEach(s => s.classList.remove('earned'));
+    startMode(G.mode);
+}
+
+function goHome() {
+    document.querySelectorAll('#result-stars .star-icon').forEach(s => s.classList.remove('earned'));
+    showScreen('menu-screen');
+}
+
+function speak(text) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.toString());
+    u.rate = 1.0;
+    u.pitch = 1.2;
+    speechSynthesis.speak(u);
+}
+
+// Multilingual
+function changeLangSub() {
+    const lang = document.getElementById('lang-select').value;
+    const subs = { en: "Learn to subtract with your block friends!", bn: "ব্লক বন্ধুদের সাথে বিয়োগ শিখো!", ar: "تعلم الطرح مع أصدقائك المكعبات!" };
+    document.getElementById('sub-subtitle').textContent = subs[lang] || subs.en;
+}
+
+// Read language from URL
+const urlParams = new URLSearchParams(window.location.search);
+const langParam = urlParams.get('lang');
+if (langParam) {
+    document.getElementById('lang-select').value = langParam;
+    changeLangSub();
+}
+</script>
+</body>
+</html>

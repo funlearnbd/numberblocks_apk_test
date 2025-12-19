@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Numberblocks Runner</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', 'Nunito', sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #game {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .bg { position: absolute; width: 100%; height: 100%; }
+        .sky { background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 100%); }
+        
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+            background: var(--ground);
+        }
+        
+        .ground::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 200%;
+            height: 8px;
+            background: repeating-linear-gradient(90deg, var(--grass1) 0px, var(--grass1) 20px, var(--grass2) 20px, var(--grass2) 40px);
+            animation: scrollGround 0.5s linear infinite;
+        }
+        
+        @keyframes scrollGround { to { transform: translateX(-40px); } }
+
+        .path {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            height: 40px;
+            background: var(--path);
+            border-top: 3px solid var(--pathBorder);
+        }
+
+        #hud {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .hud-box {
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .hud-item { display: flex; align-items: center; gap: 4px; }
+        .hud-item span { color: #FFD700; }
+        
+        .level-badge {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: white;
+        }
+
+        /* Hearts display */
+        .hearts {
+            display: flex;
+            gap: 2px;
+        }
+        .heart {
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+        .heart.lost {
+            filter: grayscale(1);
+            opacity: 0.3;
+        }
+
+        #player {
+            position: absolute;
+            bottom: 80px;
+            left: 60px;
+            z-index: 50;
+            transition: transform 0.05s;
+        }
+
+        #player.hit {
+            animation: hitFlash 0.15s ease-in-out 5;
+        }
+
+        @keyframes hitFlash {
+            0%, 100% { opacity: 1; filter: none; }
+            50% { opacity: 0.5; filter: hue-rotate(180deg) brightness(2); }
+        }
+
+        #player.invincible::after {
+            content: '💖';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            animation: floatHeart 0.5s ease-in-out infinite;
+        }
+
+        @keyframes floatHeart {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        .number-block {
+            display: grid;
+            gap: 1px;
+            filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.4));
+        }
+
+        .unit {
+            width: 18px;
+            height: 18px;
+            border-radius: 3px;
+            position: relative;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.2);
+        }
+
+        .face { position: absolute; width: 100%; height: 100%; }
+        
+        .eye {
+            position: absolute;
+            top: 20%;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            border: 1px solid #000;
+        }
+        .eye::after {
+            content: '';
+            position: absolute;
+            right: 0px;
+            top: 1px;
+            width: 1.5px;
+            height: 1.5px;
+            background: #000;
+            border-radius: 50%;
+        }
+        .eye.left { left: 3px; }
+        .eye.right { right: 3px; }
+        .mouth {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 3px;
+            border-bottom: 1.5px solid #000;
+            border-radius: 0 0 5px 5px;
+        }
+
+        /* Colors - unique for each number 1-20 */
+        .c1 { background: #ff4d4d; border: 1.5px solid #cc0000; }
+        .c2 { background: #ffaf40; border: 1.5px solid #e67e22; }
+        .c3 { background: #fffa65; border: 1.5px solid #f1c40f; }
+        .c4 { background: #32ff7e; border: 1.5px solid #2ecc71; }
+        .c5 { background: #18dcff; border: 1.5px solid #3498db; }
+        .c6 { background: #a29bfe; border: 1.5px solid #6c5ce7; }
+        .c7 { background: #fab1a0; border: 1.5px solid #e17055; }
+        .c8 { background: #ff00ff; border: 1.5px solid #c71585; }
+        .c9 { background: #b2bec3; border: 1.5px solid #636e72; }
+        .c10 { background: white; border: 2px solid #ff4d4d; }
+        .c11 { background: #800000; border: 1.5px solid #4d0000; }
+        .c12 { background: #ff69b4; border: 1.5px solid #db2777; }
+        .c13 { background: #1abc9c; border: 1.5px solid #16a085; }
+        .c14 { background: #8B4513; border: 1.5px solid #5D2E0C; }
+        .c15 { background: #4169e1; border: 1.5px solid #2a4db0; }
+        .c16 { background: #FFD700; border: 1.5px solid #ccac00; }
+        .c17 { background: #228B22; border: 1.5px solid #145214; }
+        .c18 { background: #4B0082; border: 1.5px solid #2e004f; }
+        .c19 { background: #001f3f; border: 1.5px solid #000a14; }
+        .c20 { background: #FF7F50; border: 1.5px solid #e55a2b; }
+
+        /* Collectibles */
+        .collectible, .obstacle {
+            position: absolute;
+            bottom: 80px;
+            z-index: 40;
+        }
+        
+        .collectible { animation: bob 0.4s ease-in-out infinite alternate; }
+        .collectible.high { bottom: 130px; }
+        .collectible.bar-item { bottom: 150px; }
+        
+        @keyframes bob { to { transform: translateY(-5px); } }
+
+        /* Coins and Stars */
+        .coin {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            border: 2px solid #B8860B;
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3), 2px 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #8B4513;
+        }
+
+        .star {
+            font-size: 24px;
+            filter: drop-shadow(0 0 5px #FFD700);
+            animation: starSpin 2s linear infinite;
+        }
+
+        @keyframes starSpin {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        /* Number block collectible */
+        .number-pickup {
+            animation: bob 0.4s ease-in-out infinite alternate, glow 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 5px #fff); }
+            to { filter: drop-shadow(0 0 15px #FFD700); }
+        }
+
+        /* Obstacles */
+        .rock {
+            width: 35px;
+            height: 30px;
+            background: linear-gradient(135deg, #78909C, #37474F);
+            border-radius: 50% 50% 40% 40%;
+        }
+
+        .spike {
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 25px solid #FF5722;
+        }
+
+        .spikes { display: flex; gap: 2px; }
+
+        .bird {
+            width: 25px;
+            height: 16px;
+            background: #8B4513;
+            border-radius: 50%;
+            position: relative;
+            animation: flyBird 0.3s ease-in-out infinite alternate;
+        }
+        .bird::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 4px;
+            width: 16px;
+            height: 8px;
+            background: #A0522D;
+            border-radius: 50%;
+            animation: flapWing 0.15s ease-in-out infinite alternate;
+        }
+        @keyframes flyBird { to { transform: translateY(-3px); } }
+        @keyframes flapWing { to { transform: rotate(-20deg); } }
+
+        .flying { bottom: 120px !important; }
+
+        /* Floating bar with collectibles */
+        .bar {
+            position: absolute;
+            height: 8px;
+            background: linear-gradient(180deg, #8B4513, #5D2E0C);
+            border-radius: 4px;
+            z-index: 35;
+        }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.85);
+            z-index: 200;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .screen.hidden { display: none; }
+
+        .title {
+            font-size: 28px;
+            color: #FFD700;
+            text-shadow: 2px 2px 0 #FF5722;
+            margin-bottom: 8px;
+        }
+
+        .subtitle { color: #aaa; font-size: 13px; margin-bottom: 15px; }
+
+        .btn {
+            background: linear-gradient(180deg, #4CAF50, #388E3C);
+            color: white;
+            border: none;
+            padding: 10px 35px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #2E7D32;
+            margin: 4px;
+        }
+        
+        .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #2E7D32; }
+        .btn.orange { background: linear-gradient(180deg, #FF9800, #F57C00); box-shadow: 0 3px 0 #E65100; }
+
+        .level-info {
+            background: rgba(255,255,255,0.1);
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin: 10px 0;
+            color: white;
+        }
+        
+        .level-info h3 { color: #FFD700; margin-bottom: 5px; font-size: 16px; }
+        .level-info p { font-size: 12px; color: #ccc; }
+
+        .stats { display: flex; gap: 25px; margin: 12px 0; }
+        .stat { color: white; font-size: 14px; }
+        .stat span { color: #4CAF50; font-size: 22px; display: block; }
+
+        .stars-earned { font-size: 35px; margin: 8px 0; }
+        .star-icon { color: #333; }
+        .star-icon.earned { color: #FFD700; }
+
+        .progress-wrap {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 6px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFly 0.5s ease-out forwards;
+        }
+        
+        @keyframes particleFly {
+            to { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+        }
+
+        .popup {
+            position: absolute;
+            font-weight: bold;
+            font-size: 18px;
+            color: #FFD700;
+            text-shadow: 1px 1px 0 #000;
+            pointer-events: none;
+            animation: popUp 0.8s ease-out forwards;
+            z-index: 150;
+        }
+        
+        @keyframes popUp {
+            0% { opacity: 1; transform: translateY(0) scale(0.5); }
+            50% { transform: translateY(-15px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+
+        #jump-zone {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 90;
+        }
+
+        .running { animation: runBounce 0.15s ease-in-out infinite; }
+        @keyframes runBounce {
+            0%, 100% { transform: rotate(-1deg); }
+            50% { transform: translateY(-2px) rotate(1deg); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px) rotate(-1deg); }
+            40% { transform: translateX(8px) rotate(1deg); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+
+        @media (orientation: portrait) {
+            #rotate-msg { display: flex !important; }
+        }
+
+        #rotate-msg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #1a1a2e;
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            font-size: 18px;
+        }
+
+        #rotate-msg span {
+            font-size: 50px;
+            animation: rotateIcon 1s ease-in-out infinite;
+        }
+
+        @keyframes rotateIcon {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+<div id="rotate-msg">
+    <span>📱</span>
+    <p>Rotate to landscape!</p>
+</div>
+
+<div id="game">
+    <div class="bg sky"></div>
+    <div class="bg ground"></div>
+    <div class="bg path"></div>
+    
+    <div id="hud">
+        <div class="hud-box">
+            <div class="hud-item">৳<span id="hud-coins">0</span></div>
+            <div class="hud-item">⭐<span id="hud-stars">0</span></div>
+            <div class="hud-item hearts" id="hud-hearts"></div>
+        </div>
+        <div class="level-badge">Lv<span id="hud-level">1</span></div>
+    </div>
+    
+    <div class="progress-wrap"><div class="progress-bar" id="progress"></div></div>
+    
+    <div id="player"></div>
+    <div id="jump-zone"></div>
+
+    <!-- Start Screen -->
+    <div class="screen" id="start-screen">
+        <div style="position:absolute;top:15px;left:15px;display:flex;gap:10px;z-index:100;">
+            <button onclick="goHome()" style="width:45px;height:45px;border-radius:50%;border:none;background:white;font-size:22px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.2);">🏠</button>
+            <select id="lang-select" onchange="changeLang()" style="padding:10px;border-radius:12px;border:2px solid #ddd;font-weight:bold;background:white;">
+                <option value="en">English</option>
+                <option value="bn">বাংলা</option>
+                <option value="ar">العربية</option>
+            </select>
+        </div>
+        <div class="title">🔢 Numberblocks Runner!</div>
+        <div class="subtitle" id="subtitle-text">Collect ৳ taka & stars • Get numbers for lives!</div>
+        <button class="btn" id="start-btn">▶ PLAY</button>
+        <div class="level-info">
+            <p id="tap-text">TAP to JUMP • Collect ৳ and ⭐</p>
+            <p id="lives-text">Numbers = Extra Lives! ❤️</p>
+        </div>
+    </div>
+
+    <!-- Level Intro -->
+    <div class="screen hidden" id="level-screen">
+        <div class="title" id="level-title">Level 1</div>
+        <div class="level-info">
+            <h3 id="level-goal-text">Collect ৳50!</h3>
+            <p id="level-desc">Easy start!</p>
+        </div>
+        <button class="btn" id="level-start-btn">GO!</button>
+    </div>
+
+    <!-- Level Complete -->
+    <div class="screen hidden" id="complete-screen">
+        <div class="title">Level Complete! 🎉</div>
+        <div class="stars-earned" id="stars-display">
+            <span class="star-icon">★</span>
+            <span class="star-icon">★</span>
+            <span class="star-icon">★</span>
+        </div>
+        <div class="stats">
+            <div class="stat">৳<span id="final-coins">0</span></div>
+            <div class="stat">Stars<span id="final-stars">0</span></div>
+        </div>
+        <button class="btn" id="next-btn">Next →</button>
+    </div>
+
+    <!-- Game Over -->
+    <div class="screen hidden" id="gameover-screen">
+        <div class="title">Game Over! 💔</div>
+        <div class="stats">
+            <div class="stat">৳<span id="go-coins">0</span></div>
+            <div class="stat">Stars<span id="go-stars">0</span></div>
+        </div>
+        <button class="btn orange" id="retry-btn">🔄 Retry</button>
+        <button class="btn" id="menu-btn">Menu</button>
+    </div>
+</div>
+
+<script>
+// 20 Levels with increasing difficulty
+const LEVELS = [
+    // World 1: Grasslands
+    { id: 1, coinGoal: 30, speed: 4, spawn: 70, desc: "Learn to jump!", obstacles: ['rock'], theme: 'day', barChance: 0.1 },
+    { id: 2, coinGoal: 50, speed: 4.5, spawn: 65, desc: "More coins!", obstacles: ['rock'], theme: 'day', barChance: 0.15 },
+    { id: 3, coinGoal: 70, speed: 5, spawn: 60, desc: "Watch for spikes!", obstacles: ['rock', 'spike'], theme: 'day', barChance: 0.2 },
+    { id: 4, coinGoal: 90, speed: 5, spawn: 58, desc: "Getting tricky!", obstacles: ['rock', 'spike'], theme: 'day', barChance: 0.2 },
+    
+    // World 2: Sunset Hills
+    { id: 5, coinGoal: 100, speed: 5.5, spawn: 55, desc: "Birds appear!", obstacles: ['rock', 'bird'], theme: 'sunset', barChance: 0.25 },
+    { id: 6, coinGoal: 120, speed: 5.5, spawn: 52, desc: "Jump high!", obstacles: ['spike', 'bird'], theme: 'sunset', barChance: 0.25 },
+    { id: 7, coinGoal: 140, speed: 6, spawn: 50, desc: "All obstacles!", obstacles: ['rock', 'spike', 'bird'], theme: 'sunset', barChance: 0.3 },
+    { id: 8, coinGoal: 160, speed: 6, spawn: 48, desc: "Stay focused!", obstacles: ['rock', 'spike', 'bird'], theme: 'sunset', barChance: 0.3 },
+    
+    // World 3: Dark Forest
+    { id: 9, coinGoal: 180, speed: 6.5, spawn: 46, desc: "Into darkness!", obstacles: ['rock', 'spike', 'bird'], theme: 'night', barChance: 0.35 },
+    { id: 10, coinGoal: 200, speed: 6.5, spawn: 44, desc: "Double trouble!", obstacles: ['spike', 'spike', 'bird'], theme: 'night', barChance: 0.35 },
+    { id: 11, coinGoal: 220, speed: 7, spawn: 42, desc: "Keep going!", obstacles: ['rock', 'spike', 'bird'], theme: 'night', barChance: 0.4 },
+    { id: 12, coinGoal: 250, speed: 7, spawn: 40, desc: "Almost there!", obstacles: ['rock', 'spike', 'bird'], theme: 'night', barChance: 0.4 },
+    
+    // World 4: Space
+    { id: 13, coinGoal: 280, speed: 7.5, spawn: 38, desc: "Zero gravity!", obstacles: ['rock', 'spike', 'bird'], theme: 'space', barChance: 0.45 },
+    { id: 14, coinGoal: 300, speed: 7.5, spawn: 36, desc: "Speed boost!", obstacles: ['spike', 'bird', 'spike'], theme: 'space', barChance: 0.45 },
+    { id: 15, coinGoal: 330, speed: 8, spawn: 34, desc: "Expert mode!", obstacles: ['rock', 'spike', 'bird'], theme: 'space', barChance: 0.5 },
+    { id: 16, coinGoal: 360, speed: 8, spawn: 32, desc: "No mercy!", obstacles: ['spike', 'spike', 'bird', 'bird'], theme: 'space', barChance: 0.5 },
+    
+    // World 5: Volcano
+    { id: 17, coinGoal: 400, speed: 8.5, spawn: 30, desc: "It's hot!", obstacles: ['spike', 'spike', 'bird'], theme: 'volcano', barChance: 0.55 },
+    { id: 18, coinGoal: 450, speed: 8.5, spawn: 28, desc: "Lava rush!", obstacles: ['rock', 'spike', 'bird', 'spike'], theme: 'volcano', barChance: 0.55 },
+    { id: 19, coinGoal: 500, speed: 9, spawn: 26, desc: "Ultimate!", obstacles: ['spike', 'bird', 'spike', 'bird'], theme: 'volcano', barChance: 0.6 },
+    { id: 20, coinGoal: 600, speed: 10, spawn: 24, desc: "FINAL BOSS!", obstacles: ['rock', 'spike', 'bird', 'spike', 'bird'], theme: 'volcano', barChance: 0.6 },
+];
+
+const THEMES = {
+    day: { sky1: '#87CEEB', sky2: '#E0F6FF', ground: '#8BC34A', grass1: '#7CB342', grass2: '#9CCC65', path: '#FFCC80', pathBorder: '#FF9800' },
+    sunset: { sky1: '#FF7043', sky2: '#FFB74D', ground: '#6D4C41', grass1: '#5D4037', grass2: '#795548', path: '#BCAAA4', pathBorder: '#8D6E63' },
+    night: { sky1: '#1a1a2e', sky2: '#16213e', ground: '#2d3436', grass1: '#222', grass2: '#333', path: '#4a4a5a', pathBorder: '#5a5a6a' },
+    space: { sky1: '#0f0c29', sky2: '#302b63', ground: '#1a1a2e', grass1: '#2d2d44', grass2: '#3d3d5c', path: '#4a4a6a', pathBorder: '#6a6a8a' },
+    volcano: { sky1: '#1a0a00', sky2: '#4a1a00', ground: '#2d1810', grass1: '#3d2010', grass2: '#4d2818', path: '#6d3020', pathBorder: '#ff4400' }
+};
+
+// Sound Effects System
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new AudioCtx();
+    }
+}
+
+function playSound(type) {
+    initAudio();
+    if (!audioCtx) return;
+    
+    const now = audioCtx.currentTime;
+    
+    if (type === 'coin') {
+        // Coin sound: Quick bright "ding"
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now); // A5
+        osc.frequency.setValueAtTime(1320, now + 0.05); // E6
+        
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialDecayTo ? gain.gain.exponentialDecayTo(0.01, now + 0.15) : gain.gain.setValueAtTime(0.01, now + 0.15);
+        
+        osc.start(now);
+        osc.stop(now + 0.15);
+    } 
+    else if (type === 'star') {
+        // Star sound: Magical sparkle (ascending arpeggio)
+        const notes = [523, 659, 784, 1047]; // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + i * 0.08);
+            
+            gain.gain.setValueAtTime(0, now + i * 0.08);
+            gain.gain.linearRampToValueAtTime(0.2, now + i * 0.08 + 0.02);
+            gain.gain.exponentialDecayTo ? gain.gain.exponentialDecayTo(0.01, now + i * 0.08 + 0.2) : gain.gain.setValueAtTime(0.01, now + i * 0.08 + 0.2);
+            
+            osc.start(now + i * 0.08);
+            osc.stop(now + i * 0.08 + 0.25);
+        });
+    }
+    else if (type === 'heart') {
+        // Heart/number pickup: Warm "power up" sound
+        const osc = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc2.type = 'triangle';
+        osc.frequency.setValueAtTime(330, now);
+        osc.frequency.linearRampToValueAtTime(660, now + 0.2);
+        osc2.frequency.setValueAtTime(165, now);
+        osc2.frequency.linearRampToValueAtTime(330, now + 0.2);
+        
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.setValueAtTime(0.01, now + 0.3);
+        
+        osc.start(now);
+        osc.stop(now + 0.3);
+        osc2.start(now);
+        osc2.stop(now + 0.3);
+    }
+    else if (type === 'hit') {
+        // Hit sound: Low thud
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+        
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.setValueAtTime(0.01, now + 0.2);
+        
+        osc.start(now);
+        osc.stop(now + 0.25);
+    }
+    else if (type === 'jump') {
+        // Jump sound: Quick swoosh up
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(400, now + 0.1);
+        
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.setValueAtTime(0.01, now + 0.1);
+        
+        osc.start(now);
+        osc.stop(now + 0.12);
+    }
+}
+
+const G = {
+    running: false,
+    level: 1,
+    coins: 0,
+    stars: 0,
+    block: 1,
+    speed: 4,
+    spawnTimer: 0,
+    spawnRate: 70,
+    jumping: false,
+    jumpVel: 0,
+    playerY: 0,
+    gravity: 0.85,
+    obstacles: [],
+    collectibles: [],
+    bars: [],
+    invincible: false,
+    invincibleTimer: 0
+};
+
+const $ = id => document.getElementById(id);
+const player = $('player');
+const gameEl = $('game');
+
+function applyTheme(name) {
+    const t = THEMES[name];
+    Object.keys(t).forEach(k => document.documentElement.style.setProperty('--' + k, t[k]));
+}
+
+// Layouts for numbers 1-20
+function getLayout(n) {
+    if (n === 1) return { cols: 1, pattern: [[0, 0]] };
+    if (n === 2) return { cols: 2, pattern: [[0, 0], [0, 1]] };
+    if (n === 3) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1]] };
+    if (n === 4) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1]] };
+    if (n === 5) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1]] };
+    if (n === 6) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1]] };
+    if (n === 7) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]] };
+    if (n === 8) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]] };
+    if (n === 9) return { cols: 3, pattern: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]] };
+    if (n === 10) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1]] };
+    if (n === 11) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1]] };
+    if (n === 12) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1]] };
+    if (n === 13) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1]] };
+    if (n === 14) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1]] };
+    if (n === 15) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1], [7, 0], [7, 1]] };
+    if (n === 16) return { cols: 4, pattern: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3]] };
+    if (n === 17) return { cols: 4, pattern: [[0, 0], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+    if (n === 18) return { cols: 4, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+    if (n === 19) return { cols: 4, pattern: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+    if (n === 20) return { cols: 4, pattern: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+    
+    // For 21+
+    const cols = 4;
+    const pattern = [];
+    let remaining = n;
+    let row = 0;
+    while (remaining > 0) {
+        const inRow = Math.min(remaining, 4);
+        for (let c = 0; c < inRow; c++) pattern.push([row, c]);
+        remaining -= inRow;
+        row++;
+    }
+    return { cols, pattern };
+}
+
+function createBlock(val, isPlayer = false) {
+    const wrap = document.createElement('div');
+    wrap.className = 'number-block' + (isPlayer ? ' running' : '');
+    
+    const layout = getLayout(val);
+    wrap.style.gridTemplateColumns = `repeat(${layout.cols}, 1fr)`;
+    
+    const colorNum = val <= 20 ? val : ((val - 1) % 20) + 1;
+    const sorted = [...layout.pattern].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const facePos = sorted[0];
+    
+    layout.pattern.forEach((pos) => {
+        const unit = document.createElement('div');
+        unit.className = `unit c${colorNum}`;
+        unit.style.gridRow = pos[0] + 1;
+        unit.style.gridColumn = pos[1] + 1;
+        if (pos[0] === facePos[0] && pos[1] === facePos[1]) {
+            const face = document.createElement('div');
+            face.className = 'face';
+            face.innerHTML = '<div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>';
+            unit.appendChild(face);
+        }
+        wrap.appendChild(unit);
+    });
+    
+    return wrap;
+}
+
+function updatePlayer() {
+    player.innerHTML = '';
+    player.appendChild(createBlock(G.block, true));
+    updateHearts();
+}
+
+function updateHearts() {
+    const heartsEl = $('hud-hearts');
+    heartsEl.innerHTML = '';
+    for (let i = 0; i < Math.min(G.block, 10); i++) {
+        const heart = document.createElement('span');
+        heart.className = 'heart';
+        heart.textContent = '❤️';
+        heartsEl.appendChild(heart);
+    }
+    if (G.block > 10) {
+        const more = document.createElement('span');
+        more.textContent = `+${G.block - 10}`;
+        more.style.color = '#ff6b6b';
+        more.style.fontSize = '12px';
+        heartsEl.appendChild(more);
+    }
+}
+
+function spawnObstacle() {
+    const level = LEVELS[G.level - 1];
+    const types = level.obstacles;
+    const type = types[Math.floor(Math.random() * types.length)];
+    
+    const el = document.createElement('div');
+    el.className = 'obstacle';
+    
+    if (type === 'rock') {
+        el.innerHTML = '<div class="rock"></div>';
+        el.dataset.h = 30;
+    } else if (type === 'spike') {
+        el.innerHTML = '<div class="spikes"><div class="spike"></div><div class="spike"></div></div>';
+        el.dataset.h = 25;
+    } else if (type === 'bird') {
+        el.innerHTML = '<div class="bird"></div>';
+        el.classList.add('flying');
+        el.dataset.h = 16;
+        el.dataset.flying = 'true';
+    }
+    
+    el.style.right = '-50px';
+    gameEl.appendChild(el);
+    G.obstacles.push({ el, x: window.innerWidth + 50, w: 35, h: parseInt(el.dataset.h), flying: el.dataset.flying === 'true' });
+}
+
+function spawnCollectible(type = null, posX = null, high = false) {
+    const el = document.createElement('div');
+    el.className = 'collectible';
+    
+    // Determine type: mostly coins, sometimes stars, rarely numbers
+    if (!type) {
+        const rand = Math.random();
+        if (rand < 0.7) type = 'coin';
+        else if (rand < 0.9) type = 'star';
+        else type = 'number';
+    }
+    
+    let data = { type, w: 22, h: 22 };
+    
+    if (type === 'coin') {
+        el.innerHTML = '<div class="coin">৳</div>';
+        data.value = 1;
+    } else if (type === 'star') {
+        el.innerHTML = '<div class="star">⭐</div>';
+        data.value = 5;
+    } else if (type === 'number') {
+        const numVal = Math.floor(Math.random() * 3) + 1; // 1-3
+        el.classList.add('number-pickup');
+        el.appendChild(createBlock(numVal));
+        data.value = numVal;
+        data.isNumber = true;
+        data.w = 25;
+        data.h = numVal * 18;
+    }
+    
+    if (high || Math.random() > 0.7) {
+        el.classList.add('high');
+        data.high = true;
+    }
+    
+    el.style.right = posX ? (window.innerWidth - posX) + 'px' : '-40px';
+    gameEl.appendChild(el);
+    
+    data.el = el;
+    data.x = posX || window.innerWidth + 40;
+    G.collectibles.push(data);
+}
+
+function spawnBar() {
+    const level = LEVELS[G.level - 1];
+    const barWidth = 80 + Math.random() * 60;
+    
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.width = barWidth + 'px';
+    bar.style.right = '-100px';
+    bar.style.bottom = '140px';
+    gameEl.appendChild(bar);
+    
+    const barData = { el: bar, x: window.innerWidth + 100, w: barWidth };
+    G.bars.push(barData);
+    
+    // Spawn collectibles on bar
+    const numItems = Math.floor(barWidth / 30);
+    for (let i = 0; i < numItems; i++) {
+        setTimeout(() => {
+            if (G.running) {
+                const itemX = barData.x - 10 - (i * 28);
+                const rand = Math.random();
+                const type = rand < 0.6 ? 'coin' : (rand < 0.9 ? 'star' : 'number');
+                
+                const el = document.createElement('div');
+                el.className = 'collectible bar-item';
+                
+                let data = { type, w: 22, h: 22, high: false, barItem: true };
+                
+                if (type === 'coin') {
+                    el.innerHTML = '<div class="coin">$</div>';
+                    data.value = 1;
+                } else if (type === 'star') {
+                    el.innerHTML = '<div class="star">⭐</div>';
+                    data.value = 5;
+                } else {
+                    const numVal = Math.floor(Math.random() * 2) + 1;
+                    el.classList.add('number-pickup');
+                    el.appendChild(createBlock(numVal));
+                    data.value = numVal;
+                    data.isNumber = true;
+                }
+                
+                el.style.right = (window.innerWidth - itemX) + 'px';
+                gameEl.appendChild(el);
+                
+                data.el = el;
+                data.x = itemX;
+                G.collectibles.push(data);
+            }
+        }, i * 50);
+    }
+}
+
+function particles(x, y, color) {
+    for (let i = 0; i < 6; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.cssText = `left:${x}px;top:${y}px;width:6px;height:6px;background:${color};--tx:${(Math.random()-.5)*60}px;--ty:${(Math.random()-.5)*60}px`;
+        gameEl.appendChild(p);
+        setTimeout(() => p.remove(), 500);
+    }
+}
+
+function popup(text, x, y, color = '#FFD700') {
+    const p = document.createElement('div');
+    p.className = 'popup';
+    p.textContent = text;
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.color = color;
+    gameEl.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+}
+
+function jump() {
+    if (!G.jumping && G.running) {
+        G.jumping = true;
+        G.jumpVel = 14;
+        playSound('jump');
+    }
+}
+
+function hitObstacle() {
+    if (G.invincible) return;
+    
+    G.block--;
+    playSound('hit');
+    
+    if (G.block <= 0) {
+        gameOver();
+        return;
+    }
+    
+    // Invincibility period
+    G.invincible = true;
+    G.invincibleTimer = 90; // ~1.5 seconds
+    
+    player.classList.add('hit', 'invincible');
+    
+    // Screen shake
+    gameEl.style.animation = 'shake 0.3s ease-out';
+    setTimeout(() => gameEl.style.animation = '', 300);
+    
+    // Update player
+    setTimeout(() => {
+        player.classList.remove('hit');
+        updatePlayer();
+        player.classList.add('invincible');
+    }, 750);
+    
+    // Popup
+    const rect = player.getBoundingClientRect();
+    popup('-1 💔', rect.left, rect.top - 20, '#ff4444');
+    particles(rect.left + 20, rect.top + 20, '#ff4444');
+    
+    speak('ouch');
+}
+
+function checkCollisions() {
+    const pLeft = 60, pRight = 78;
+    const pBottom = G.playerY;
+    const layout = getLayout(G.block);
+    const pTop = pBottom + (Math.max(...layout.pattern.map(p => p[0])) + 1) * 18;
+    const tol = 6;
+
+    // Check obstacles
+    if (!G.invincible) {
+        for (const o of G.obstacles) {
+            const oLeft = o.x - o.w;
+            const oRight = o.x;
+            const oBottom = o.flying ? 40 : 0;
+            const oTop = oBottom + o.h;
+
+            if (pRight > oLeft + tol && pLeft < oRight - tol && pBottom < oTop - tol && pTop > oBottom + tol) {
+                hitObstacle();
+                return;
+            }
+        }
+    }
+
+    // Check collectibles
+    for (let i = G.collectibles.length - 1; i >= 0; i--) {
+        const c = G.collectibles[i];
+        const cLeft = c.x - c.w;
+        const cRight = c.x;
+        const cBottom = c.high ? 50 : (c.barItem ? 70 : 0);
+        const cTop = cBottom + c.h;
+
+        if (pRight > cLeft && pLeft < cRight && pBottom < cTop && pTop > cBottom) {
+            const rect = c.el.getBoundingClientRect();
+            
+            if (c.isNumber) {
+                // Number = extra life
+                G.block += c.value;
+                if (G.block > 20) G.block = 20;
+                updatePlayer();
+                particles(rect.left, rect.top, '#ff69b4');
+                popup('+' + c.value + ' ❤️', rect.left, rect.top, '#ff69b4');
+                playSound('heart');
+                speak(G.block);
+            } else if (c.type === 'star') {
+                G.stars += 1;
+                G.coins += c.value;
+                particles(rect.left, rect.top, '#FFD700');
+                popup('+⭐', rect.left, rect.top);
+                playSound('star');
+                $('hud-stars').textContent = G.stars;
+            } else {
+                G.coins += c.value;
+                particles(rect.left, rect.top, '#FFD700');
+                popup('+' + c.value, rect.left, rect.top);
+                playSound('coin');
+            }
+            
+            $('hud-coins').textContent = G.coins;
+            
+            c.el.remove();
+            G.collectibles.splice(i, 1);
+            
+            // Check level goal
+            if (G.coins >= LEVELS[G.level - 1].coinGoal) {
+                levelComplete();
+                return;
+            }
+        }
+    }
+}
+
+function speak(text) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.toString());
+    u.rate = 1.2;
+    u.pitch = 1.3;
+    speechSynthesis.speak(u);
+}
+
+function loop() {
+    if (!G.running) return;
+
+    // Update invincibility
+    if (G.invincible) {
+        G.invincibleTimer--;
+        if (G.invincibleTimer <= 0) {
+            G.invincible = false;
+            player.classList.remove('invincible');
+        }
+    }
+
+    // Progress bar
+    const goal = LEVELS[G.level - 1].coinGoal;
+    $('progress').style.width = Math.min(100, (G.coins / goal) * 100) + '%';
+
+    // Jump physics
+    if (G.jumping) {
+        G.playerY += G.jumpVel;
+        G.jumpVel -= G.gravity;
+        if (G.playerY <= 0) {
+            G.playerY = 0;
+            G.jumping = false;
+        }
+        player.style.bottom = (80 + G.playerY) + 'px';
+    }
+
+    // Spawning
+    G.spawnTimer++;
+    if (G.spawnTimer >= G.spawnRate) {
+        G.spawnTimer = 0;
+        const level = LEVELS[G.level - 1];
+        
+        const rand = Math.random();
+        if (rand < 0.4) {
+            spawnObstacle();
+        } else if (rand < 0.85) {
+            spawnCollectible();
+        } else if (rand < 0.85 + level.barChance) {
+            spawnBar();
+        } else {
+            spawnCollectible();
+        }
+    }
+
+    // Move obstacles
+    for (let i = G.obstacles.length - 1; i >= 0; i--) {
+        const o = G.obstacles[i];
+        o.x -= G.speed;
+        o.el.style.right = (window.innerWidth - o.x) + 'px';
+        if (o.x < -50) { o.el.remove(); G.obstacles.splice(i, 1); }
+    }
+
+    // Move collectibles
+    for (let i = G.collectibles.length - 1; i >= 0; i--) {
+        const c = G.collectibles[i];
+        c.x -= G.speed;
+        c.el.style.right = (window.innerWidth - c.x) + 'px';
+        if (c.x < -50) { c.el.remove(); G.collectibles.splice(i, 1); }
+    }
+
+    // Move bars
+    for (let i = G.bars.length - 1; i >= 0; i--) {
+        const b = G.bars[i];
+        b.x -= G.speed;
+        b.el.style.right = (window.innerWidth - b.x) + 'px';
+        if (b.x < -150) { b.el.remove(); G.bars.splice(i, 1); }
+    }
+
+    checkCollisions();
+
+    if (G.running) requestAnimationFrame(loop);
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    if (id) $(id).classList.remove('hidden');
+}
+
+function startLevel() {
+    const lvl = LEVELS[G.level - 1];
+    
+    G.coins = 0;
+    G.stars = 0;
+    G.block = 1;
+    G.speed = lvl.speed;
+    G.spawnRate = lvl.spawn;
+    G.spawnTimer = 0;
+    G.jumping = false;
+    G.jumpVel = 0;
+    G.playerY = 0;
+    G.invincible = false;
+    G.invincibleTimer = 0;
+    
+    G.obstacles.forEach(o => o.el.remove());
+    G.collectibles.forEach(c => c.el.remove());
+    G.bars.forEach(b => b.el.remove());
+    G.obstacles = [];
+    G.collectibles = [];
+    G.bars = [];
+    
+    applyTheme(lvl.theme);
+    updatePlayer();
+    player.classList.remove('hit', 'invincible');
+    $('hud-coins').textContent = '0';
+    $('hud-stars').textContent = '0';
+    $('hud-level').textContent = G.level;
+    $('progress').style.width = '0%';
+    player.style.bottom = '80px';
+    
+    showScreen(null);
+    G.running = true;
+    speak('go');
+    loop();
+}
+
+function showLevelIntro() {
+    const lvl = LEVELS[G.level - 1];
+    const worldNames = ['Grasslands', 'Grasslands', 'Grasslands', 'Grasslands', 'Sunset Hills', 'Sunset Hills', 'Sunset Hills', 'Sunset Hills', 'Dark Forest', 'Dark Forest', 'Dark Forest', 'Dark Forest', 'Space', 'Space', 'Space', 'Space', 'Volcano', 'Volcano', 'Volcano', 'Volcano'];
+    const worldNum = Math.ceil(G.level / 4);
+    $('level-title').textContent = 'Level ' + G.level;
+    $('level-goal-text').innerHTML = `World ${worldNum}: ${worldNames[G.level-1]}<br>Collect ৳${lvl.coinGoal}!`;
+    $('level-desc').textContent = lvl.desc;
+    applyTheme(lvl.theme);
+    showScreen('level-screen');
+}
+
+function levelComplete() {
+    G.running = false;
+    
+    const goal = LEVELS[G.level - 1].coinGoal;
+    const starsEarned = G.stars >= 5 ? 3 : (G.stars >= 2 ? 2 : 1);
+    
+    $('final-coins').textContent = G.coins;
+    $('final-stars').textContent = G.stars;
+    
+    const starEls = $('stars-display').querySelectorAll('.star-icon');
+    starEls.forEach((s, i) => s.classList.toggle('earned', i < starsEarned));
+    
+    showScreen('complete-screen');
+    speak('Level complete!');
+}
+
+function gameOver() {
+    G.running = false;
+    
+    gameEl.style.animation = 'shake 0.5s ease-out';
+    setTimeout(() => gameEl.style.animation = '', 500);
+    
+    const rect = player.getBoundingClientRect();
+    for (let i = 0; i < 15; i++) {
+        particles(rect.left + 20, rect.top + 20, ['#ff4444', '#ff8800', '#ffff00'][Math.floor(Math.random() * 3)]);
+    }
+    
+    $('go-coins').textContent = G.coins;
+    $('go-stars').textContent = G.stars;
+    showScreen('gameover-screen');
+}
+
+// Event listeners
+$('jump-zone').addEventListener('touchstart', e => { e.preventDefault(); jump(); });
+$('jump-zone').addEventListener('mousedown', jump);
+document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); jump(); }});
+
+$('start-btn').addEventListener('click', () => { initAudio(); G.level = 1; showLevelIntro(); });
+$('level-start-btn').addEventListener('click', startLevel);
+$('next-btn').addEventListener('click', () => {
+    G.level = Math.min(G.level + 1, LEVELS.length);
+    showLevelIntro();
+});
+$('retry-btn').addEventListener('click', startLevel);
+$('menu-btn').addEventListener('click', () => showScreen('start-screen'));
+
+// Multilingual support
+const LANG_DATA = {
+    en: { subtitle: "Collect ৳ taka & stars • Get numbers for lives!", tap: "TAP to JUMP • Collect ৳ and ⭐", lives: "Numbers = Extra Lives! ❤️", play: "▶ PLAY" },
+    bn: { subtitle: "৳ টাকা ও তারা সংগ্রহ করো • সংখ্যা = জীবন!", tap: "লাফ দিতে TAP করো • ৳ ও ⭐ সংগ্রহ করো", lives: "সংখ্যা = অতিরিক্ত জীবন! ❤️", play: "▶ খেলুন" },
+    ar: { subtitle: "اجمع ৳ والنجوم • الأرقام = حياة!", tap: "اضغط للقفز • اجمع ৳ و ⭐", lives: "الأرقام = حياة إضافية! ❤️", play: "▶ العب" }
+};
+
+function goHome() { window.location.href = 'index.html'; }
+
+function changeLang() {
+    const lang = document.getElementById('lang-select').value;
+    const L = LANG_DATA[lang];
+    if (L) {
+        document.getElementById('subtitle-text').textContent = L.subtitle;
+        document.getElementById('tap-text').textContent = L.tap;
+        document.getElementById('lives-text').textContent = L.lives;
+        $('start-btn').textContent = L.play;
+    }
+}
+
+// Read language from URL
+const urlParams = new URLSearchParams(window.location.search);
+const langParam = urlParams.get('lang');
+if (langParam && LANG_DATA[langParam]) {
+    document.getElementById('lang-select').value = langParam;
+    changeLang();
+}
+
+// Init
+applyTheme('day');
+updatePlayer();
+</script>
+</body>
+</html>

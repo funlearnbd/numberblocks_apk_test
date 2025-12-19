@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Numberblocks Preview</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial Rounded MT Bold', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .home-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .block-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            min-width: 100px;
+        }
+
+        .block-card .label {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .number-block {
+            display: grid;
+            gap: 2px;
+            filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.3));
+        }
+
+        .unit {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+            position: relative;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        .face { position: absolute; width: 100%; height: 100%; }
+        
+        .eye {
+            position: absolute;
+            top: 20%;
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            border: 1.5px solid #000;
+        }
+        .eye::after {
+            content: '';
+            position: absolute;
+            right: 1px;
+            top: 1px;
+            width: 2px;
+            height: 2px;
+            background: #000;
+            border-radius: 50%;
+        }
+        .eye.left { left: 4px; }
+        .eye.right { right: 4px; }
+        .mouth {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 4px;
+            border-bottom: 2px solid #000;
+            border-radius: 0 0 8px 8px;
+        }
+
+        /* Colors - unique for each number 1-20 */
+        .c1 { background: #ff4d4d; border: 2px solid #cc0000; } /* Red */
+        .c2 { background: #ffaf40; border: 2px solid #e67e22; } /* Orange */
+        .c3 { background: #fffa65; border: 2px solid #f1c40f; } /* Yellow */
+        .c4 { background: #32ff7e; border: 2px solid #2ecc71; } /* Lime Green */
+        .c5 { background: #18dcff; border: 2px solid #3498db; } /* Cyan */
+        .c6 { background: #a29bfe; border: 2px solid #6c5ce7; } /* Lavender */
+        .c7 { background: #fab1a0; border: 2px solid #e17055; } /* Peach */
+        .c8 { background: #ff00ff; border: 2px solid #c71585; } /* Magenta */
+        .c9 { background: #b2bec3; border: 2px solid #636e72; } /* Grey */
+        .c10 { background: white; border: 3px solid #ff4d4d; } /* White */
+        .c11 { background: #800000; border: 2px solid #4d0000; } /* Maroon */
+        .c12 { background: #ff69b4; border: 2px solid #db2777; } /* Hot Pink */
+        .c13 { background: #1abc9c; border: 2px solid #16a085; } /* Teal */
+        .c14 { background: #8B4513; border: 2px solid #5D2E0C; } /* Brown */
+        .c15 { background: #4169e1; border: 2px solid #2a4db0; } /* Royal Blue */
+        .c16 { background: #FFD700; border: 2px solid #ccac00; } /* Gold */
+        .c17 { background: #228B22; border: 2px solid #145214; } /* Forest Green */
+        .c18 { background: #4B0082; border: 2px solid #2e004f; } /* Indigo */
+        .c19 { background: #001f3f; border: 2px solid #000a14; } /* Navy */
+        .c20 { background: #FF7F50; border: 2px solid #e55a2b; } /* Coral */
+
+        .layout-info {
+            font-size: 11px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <button class="home-btn" onclick="window.location.href='index.html'">🏠</button>
+    <h1>🔢 Numberblocks Preview (Current Layouts)</h1>
+    <div class="grid" id="grid"></div>
+
+    <script>
+        // Original layouts from phase1.html
+        function getLayout(n) {
+            // 1: single block
+            if (n === 1) return { cols: 1, pattern: [[0, 0]] };
+            // 2: horizontal pair
+            if (n === 2) return { cols: 2, pattern: [[0, 0], [0, 1]] };
+            // 3: 1 on top, 2 on bottom (pyramid)
+            if (n === 3) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1]] };
+            // 4: 2x2 square
+            if (n === 4) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1]] };
+            // 5: 1 on top, 2x2 below (house shape)
+            if (n === 5) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1]] };
+            // 6: 2x3 rectangle (2 cols, 3 rows)
+            if (n === 6) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1]] };
+            // 7: 1 on top, 2x3 below
+            if (n === 7) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]] };
+            // 8: 2x4 rectangle (2 cols, 4 rows)
+            if (n === 8) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]] };
+            // 9: 3x3 square
+            if (n === 9) return { cols: 3, pattern: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]] };
+            // 10: 2x5 tall rectangle (original)
+            if (n === 10) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1]] };
+            // 11: 1 on top + 2x5
+            if (n === 11) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1]] };
+            // 12: 2x6 rectangle
+            if (n === 12) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1]] };
+            // 13: 1 on top + 2x6
+            if (n === 13) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1]] };
+            // 14: 2x7 rectangle
+            if (n === 14) return { cols: 2, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1]] };
+            // 15: 1 on top + 2x7
+            if (n === 15) return { cols: 2, pattern: [[0, 0], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0], [6, 1], [7, 0], [7, 1]] };
+            // 16: 4x4 square
+            if (n === 16) return { cols: 4, pattern: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3]] };
+            // 17: 1 on top + 4x4
+            if (n === 17) return { cols: 4, pattern: [[0, 0], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+            // 18: 2 on top + 4x4
+            if (n === 18) return { cols: 4, pattern: [[0, 0], [0, 1], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+            // 19: 3 on top + 4x4
+            if (n === 19) return { cols: 4, pattern: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+            // 20: 4 on top + 4x4
+            if (n === 20) return { cols: 4, pattern: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [2, 2], [2, 3], [3, 0], [3, 1], [3, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3]] };
+            
+            // For 21+: continue pattern
+            const cols = 4;
+            const extra = n - 16;
+            const pattern = [];
+            
+            let remaining = extra;
+            let row = 0;
+            while (remaining > 0) {
+                const inRow = Math.min(remaining, 4);
+                for (let c = 0; c < inRow; c++) {
+                    pattern.push([row, c]);
+                }
+                remaining -= inRow;
+                row++;
+            }
+            
+            // Add the 4x4 base
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    pattern.push([row + r, c]);
+                }
+            }
+            
+            return { cols, pattern };
+        }
+
+        function addFace(unit) {
+            const face = document.createElement('div');
+            face.className = 'face';
+            face.innerHTML = '<div class="eye left"></div><div class="eye right"></div><div class="mouth"></div>';
+            unit.appendChild(face);
+        }
+
+        function createBlock(val) {
+            const wrap = document.createElement('div');
+            wrap.className = 'number-block';
+            
+            const layout = getLayout(val);
+            wrap.style.gridTemplateColumns = `repeat(${layout.cols}, 1fr)`;
+            
+            // Find topmost-leftmost for face
+            const sorted = [...layout.pattern].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+            const facePos = sorted[0];
+            
+            // Each number gets its own color (1-20 unique, then cycle)
+            const colorNum = val <= 20 ? val : ((val - 1) % 20) + 1;
+            
+            layout.pattern.forEach((pos, index) => {
+                const unit = document.createElement('div');
+                unit.className = `unit c${colorNum}`;
+                unit.style.gridRow = pos[0] + 1;
+                unit.style.gridColumn = pos[1] + 1;
+                if (pos[0] === facePos[0] && pos[1] === facePos[1]) addFace(unit);
+                wrap.appendChild(unit);
+            });
+            
+            return wrap;
+        }
+
+        // Generate blocks 1-20
+        const grid = document.getElementById('grid');
+        for (let i = 1; i <= 20; i++) {
+            const card = document.createElement('div');
+            card.className = 'block-card';
+            
+            const label = document.createElement('div');
+            label.className = 'label';
+            label.textContent = i;
+            
+            const block = createBlock(i);
+            
+            const layout = getLayout(i);
+            const info = document.createElement('div');
+            info.className = 'layout-info';
+            info.textContent = `${layout.cols} cols`;
+            
+            card.appendChild(label);
+            card.appendChild(block);
+            card.appendChild(info);
+            grid.appendChild(card);
+        }
+    </script>
+</body>
+</html>
