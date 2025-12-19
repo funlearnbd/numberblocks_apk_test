@@ -1,35 +1,35 @@
 {
-    "id": "/",
+    "id": "/numberblocks_apk_test/",
     "name": "Numberblocks Games",
     "short_name": "Numberblocks",
     "description": "Learn numbers through fun games! Addition, Subtraction, Runner and more.",
-    "start_url": "index.html",
-    "scope": ".",
+    "start_url": "/numberblocks_apk_test/index.html",
+    "scope": "/numberblocks_apk_test/",
     "display": "standalone",
     "orientation": "portrait",
     "background_color": "#667eea",
     "theme_color": "#667eea",
     "icons": [
         {
-            "src": "icon-192.png",
+            "src": "/numberblocks_apk_test/icon-192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "icon-512.png",
+            "src": "/numberblocks_apk_test/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "icon-192.png",
+            "src": "/numberblocks_apk_test/icon-192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "maskable"
         },
         {
-            "src": "icon-512.png",
+            "src": "/numberblocks_apk_test/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
@@ -37,13 +37,13 @@
     ],
     "screenshots": [
         {
-            "src": "screenshot-1.png",
+            "src": "/numberblocks_apk_test/screenshot-1.png",
             "sizes": "540x720",
             "type": "image/png",
             "form_factor": "narrow"
         },
         {
-            "src": "screenshot-2.png",
+            "src": "/numberblocks_apk_test/screenshot-2.png",
             "sizes": "540x720",
             "type": "image/png",
             "form_factor": "narrow"
