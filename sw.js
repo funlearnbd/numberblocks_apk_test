@@ -1,12 +1,14 @@
 const CACHE_NAME = 'numberblocks-v1';
 const ASSETS = [
-    '/',
-    '/index.html',
-    '/numberblocks-addition.html',
-    '/numberblocks-subtraction.html',
-    '/numberblocks-subtractionV2.html',
-    '/numberblocks-runner.html',
-    '/numberblocks-preview.html'
+    './',
+    './index.html',
+    './numberblocks-addition.html',
+    './numberblocks-subtraction.html',
+    './numberblocks-subtractionV2.html',
+    './numberblocks-runner.html',
+    './numberblocks-preview.html',
+    './icon-192.png',
+    './icon-512.png'
 ];
 
 // Install
@@ -32,6 +34,6 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
         caches.match(e.request)
             .then(res => res || fetch(e.request))
-            .catch(() => caches.match('/index.html'))
+            .catch(() => caches.match('./index.html'))
     );
 });
